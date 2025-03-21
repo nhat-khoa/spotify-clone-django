@@ -10,5 +10,4 @@ venv/
 env/
 
 # Thông tin nhạy cảm
-.env
 config/settings_local.py

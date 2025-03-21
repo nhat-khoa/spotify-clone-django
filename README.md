@@ -4,10 +4,10 @@
 - venv\Scripts\activate
 
 ### 1.2. Install all packages of project
+- cd .\main\ 
 - pip install -r requirements.txt
 
 ### 1.3. Create and apply migrations
-- cd lms_maihoc_be
 - python manage.py makemigrations
 - python manage.py migrate
 
