@@ -131,13 +131,25 @@ DATABASES = {
               
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'NAME': os.getenv('DB_NAME', 'spotify_clone'),  # Giá trị mặc định là 'spotify_clone'
+        'USER': os.getenv('DB_USER', 'postgres'),  # Giá trị mặc định là 'postgres'
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'localhost'),  # Giá trị mặc định là 'localhost'
         'PORT': os.getenv('DB_PORT', '5432'),  # Giá trị mặc định là 5432
     } 
 }
+
+# Mongo DB settings
+# from mongoengine import connect
+
+# connect(
+#     db=os.getenv('MONGO_DATABASE_NAME', 'spotify_clone'),
+#     host=os.getenv('MONGO_HOST', 'localhost'),
+#     port= int( os.getenv('MONGO_PORT', '27017')),
+#     alias="default"  # 🔥 Quan trọng: Định nghĩa "default" connection
+# )
+
+
 
 
 # CORS settings
