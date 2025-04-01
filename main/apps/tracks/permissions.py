@@ -13,5 +13,8 @@ class IsTrackOwner(permissions.BasePermission):
     Custom permission để kiểm tra user có phải là chủ sở hữu của track không
     """
     def has_object_permission(self, request, view, obj):
-        # Kiểm tra xem user hiện tại có phải là artist sở hữu track này không
-        return obj.artist.user == request.user
+        return obj.artist == request.user.artist_profile
+    
+    def has_permission(self, request, view, *args, **kwargs):     
+        # For object-specific actions, let has_object_permission handle it
+        return True
