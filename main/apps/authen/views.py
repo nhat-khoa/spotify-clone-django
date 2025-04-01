@@ -8,6 +8,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.tokens import AccessToken
+from django.contrib.auth import authenticate
+
+from apps.users.serializers import UserSerializer
 
 User = get_user_model()
 
@@ -32,7 +35,7 @@ def google_login(request):
         email = id_info["email"]
         full_name = id_info.get("name", "")
         avatar_url = id_info.get("picture", "")
-
+        
         # Kiểm tra xem user đã tồn tại chưa, nếu chưa thì tạo mới
         user, created = User.objects.get_or_create(email=email, defaults={
             "username": email,
@@ -64,11 +67,22 @@ def google_login(request):
 @permission_classes([AllowAny])  # Mở quyền truy cập API
 def verify_token(request):
     """Xác thực Access Token từ cookie"""
-    token_str = request.COOKIES.get("access_token")  # Lấy token từ cookie
+    # token_str = request.COOKIES.get("access_token")  # Lấy token từ cookie
 
+    # if not token_str:
+    #     return Response({"error": "Token không tồn tại"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Lấy token từ header
+    auth_header = request.headers.get('Authorization')
+    
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return Response({"error": "Header Authorization không tồn tại hoặc không hợp lệ"}, status=401)
+        
+    token_str = auth_header.split(' ')[1]
+    
     if not token_str:
         return Response({"error": "Token không tồn tại"}, status=status.HTTP_401_UNAUTHORIZED)
-
+    
     try:
         token = AccessToken(token_str)  # Giải mã token
         user = User.objects.get(id=token["user_id"])  # Lấy thông tin user từ token
@@ -84,3 +98,33 @@ def verify_token(request):
 
     except Exception as e:
         return Response({"error": "Token không hợp lệ hoặc đã hết hạn"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register(request):
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'user': serializer.data,
+            'refresh_token': str(refresh),
+            'access_token': str(refresh.access_token),
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    user = authenticate(email=email, password=password)
+    
+    if user:
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh_token': str(refresh),
+            'access_token': str(refresh.access_token),
+        })
+    return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+

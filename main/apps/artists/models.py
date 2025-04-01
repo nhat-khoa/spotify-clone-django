@@ -5,10 +5,10 @@ from apps.core.utils import generate_unique_filename
 class Artist(BaseModel):
     """Model for artists"""
     user = models.OneToOneField('users.User', on_delete=models.CASCADE, related_name='artist_profile')
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     bio = models.TextField(blank=True)
-    avatar_url =  models.ImageField(upload_to=generate_unique_filename)
-    thumbnail_url = models.ImageField(upload_to=generate_unique_filename)
+    avatar_url =  models.ImageField(upload_to=generate_unique_filename, null=True, blank=True)
+    thumbnail_url = models.ImageField(upload_to=generate_unique_filename, null=True, blank=True)
     popularity = models.IntegerField(default=0)
     country = models.CharField(max_length=100, blank=True)
     more_info = models.JSONField(default=dict, blank=True)

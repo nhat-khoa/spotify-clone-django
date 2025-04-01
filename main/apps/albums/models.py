@@ -7,8 +7,8 @@ class Album(BaseModel):
     artist = models.ForeignKey('artists.Artist', on_delete=models.CASCADE, related_name='albums')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    avatar_url =  models.ImageField(upload_to=generate_unique_filename)
-    cover_art_url =  models.ImageField(upload_to=generate_unique_filename)
+    avatar_url =  models.ImageField(upload_to=generate_unique_filename, null=True, blank=True)
+    cover_art_url =  models.ImageField(upload_to=generate_unique_filename, null=True, blank=True)
     album_type = models.CharField(max_length=50, blank=True)  # single, EP, album, etc.
     label = models.CharField(max_length=255, blank=True)
     copyright = models.CharField(max_length=255, blank=True)

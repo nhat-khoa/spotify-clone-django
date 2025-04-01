@@ -8,12 +8,13 @@ class Track(BaseModel):
     album = models.ForeignKey('albums.Album', on_delete=models.CASCADE, related_name='tracks', null=True, blank=True)
     
     title = models.CharField(max_length=255)
-    duration = models.IntegerField()  # in seconds
+    duration_ms = models.IntegerField()  # in seconds
     popularity = models.IntegerField(default=0)
     audio_file_path = models.FileField(upload_to=generate_unique_filename,blank=True)
     isrc_code = models.CharField(max_length=50, blank=True)  # International Standard Recording Code
     explicit = models.BooleanField(default=False)
     language = models.CharField(max_length=50, blank=True)
+    release_date = models.DateField(null=True, blank=True)
     
     plain_lyrics = models.TextField(blank=True)
     synced_lyrics = models.FileField(upload_to=generate_unique_filename,blank=True)

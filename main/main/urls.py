@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
+from django.conf import settings
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -31,7 +32,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="MIT License"),
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=[permissions.AllowAny, ],
 )
 
 urlpatterns = [
@@ -39,23 +40,29 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('users/', include('apps.users.urls')),
-    path('', include('apps.artists.urls')),
-    path('', include('apps.tracks.urls')),
-    path('', include('apps.playlists.urls')),
-    path('', include('apps.podcasts.urls')),
-    path('', include('apps.interactions.urls')),
-    path('', include('apps.categories.urls')),
-    path('', include('apps.subscriptions.urls')),
-    path('', include('apps.albums.urls')),
-    
+    path('api/', include('apps.users.urls')),
+    path('api/', include('apps.artists.urls')),
+    path('api/', include('apps.tracks.urls')),
+    path('api/', include('apps.playlists.urls')),
+    path('api/', include('apps.podcasts.urls')),
+    path('api/', include('apps.interactions.urls')),
+    path('api/', include('apps.categories.urls')),
+    path('api/', include('apps.subscriptions.urls')),
+    path('api/', include('apps.albums.urls')),
+
     # path('', include('apps.group_sessions.urls')),
     # path('', include('apps.analytics.urls')),
-    
-    path("api/auth/", include("apps.authen.urls")),  
+
+    path("api/auth/", include("apps.authen.urls")),
 
     # Swagger
     re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
     path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
     path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
 ]
+
+
+
+if settings.DEBUG:
+    from django.conf.urls.static import static
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 
