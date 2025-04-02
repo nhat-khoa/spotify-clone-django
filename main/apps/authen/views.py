@@ -34,13 +34,16 @@ def google_login(request):
         # Lấy thông tin từ token
         email = id_info["email"]
         full_name = id_info.get("name", "")
-        avatar_url = id_info.get("picture", "")
+        avatar_google_url = id_info.get("picture", "")
         
+        if avatar_google_url:
+            avatar_google_url = avatar_google_url.replace('s96-c', 's400')
+
         # Kiểm tra xem user đã tồn tại chưa, nếu chưa thì tạo mới
         user, created = User.objects.get_or_create(email=email, defaults={
             "username": email,
             "full_name": full_name,
-            "avatar_url": avatar_url,
+            "avatar_google_url": avatar_google_url,
             "is_active": True
         })
 
@@ -56,7 +59,7 @@ def google_login(request):
                 "id": str(user.id),
                 "email": user.email,
                 "full_name": user.full_name,
-                "avatar_url": user.avatar_url.url if user.avatar_url else None,
+                "avatar_google_url": user.avatar_google_url,
             }
         }, status=status.HTTP_200_OK)
 
@@ -78,7 +81,7 @@ def verify_token(request):
     if not auth_header or not auth_header.startswith('Bearer '):
         return Response({"error": "Header Authorization không tồn tại hoặc không hợp lệ"}, status=401)
         
-    token_str = auth_header.split(' ')[1]
+    token_str = auth_header.split(' ')[1] # cắt chữ Bearer ra khỏi token
     
     if not token_str:
         return Response({"error": "Token không tồn tại"}, status=status.HTTP_401_UNAUTHORIZED)

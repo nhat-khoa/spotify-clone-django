@@ -46,6 +46,8 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    avatar_google_url = models.CharField(max_length=900, blank=True)
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
     
