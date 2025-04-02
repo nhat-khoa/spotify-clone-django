@@ -10,8 +10,8 @@ from apps.tracks.models import Track
 from apps.albums.models import Album
 
 MEDIA_ROOT = "media/"
-start_line = 48
-end_line = 49  
+start_line = 300
+end_line = 302
 file_path = r"D:\User\workspace\ProjectsOnSchool\spotify-clone-data\spotify_songs.csv\spotify_songs.csv" # url đến file csv
 ffmpeg_location = r"D:\programfile\ffmpeg-2025-03-27-git-114fccc4a5-full_build\bin" 
 # đường dẫn đến ffmpeg.exe, chưa có thì tải về từ https://ffmpeg.org/download.html 
@@ -111,7 +111,20 @@ class Command(BaseCommand):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 search_results = ydl.extract_info(f"ytsearch:{search_query}", download=False)
-                video_url = search_results["entries"][0]["webpage_url"]
+                
+                # Kiểm tra nếu kết quả trả về là danh sách
+                if "entries" in search_results and search_results["entries"]:
+                    video_info = search_results["entries"][0]  # Lấy video đầu tiên
+                else:
+                    print(f"Không tìm thấy video cho {track_name} - {artist_name}")
+                    return
+
+                video_url = video_info.get("url")  # Lấy URL video
+                if not video_url:
+                    print(f"Lỗi: Không tìm thấy URL cho {track_name} - {artist_name}")
+                    return
+                
+                
                 ydl.download([video_url])
                 print(f"Downloaded: {file_path}")
             except Exception as e:
