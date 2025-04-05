@@ -1,33 +1,349 @@
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ViewSet
 from .models import (
     UserFollowedArtist, UserFollowedPodcast, UserFollowedPlaylist,
-    UserSavedTrack, UserSavedAlbum, UserSavedEpisode
+    UserSavedTrack, UserSavedEpisode, Folder, Playlist, PlaylistTrackPodcast
 )
 from .serializers import (
-    UserFollowedArtistSerializer, UserFollowedPodcastSerializer, UserFollowedPlaylistSerializer,
-    UserSavedTrackSerializer, UserSavedAlbumSerializer, UserSavedEpisodeSerializer
+    FolderSerializer,
+    PlaylistSerializer
 )
+from apps.tracks.serializers import TrackSerializer
+from apps.tracks.models import Track
+from apps.artists.serializers import ArtistSerializer
+from apps.artists.models import Artist
+from apps.podcasts.models import PodcastEpisode, Podcast
+from apps.podcasts.serializers import PodcastSerializer, PodcastEpisodeSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
 
-class UserFollowedArtistViewSet(ModelViewSet):
-    queryset = UserFollowedArtist.objects.all()
-    serializer_class = UserFollowedArtistSerializer
 
-class UserFollowedPodcastViewSet(ModelViewSet):
-    queryset = UserFollowedPodcast.objects.all()
-    serializer_class = UserFollowedPodcastSerializer
 
-class UserFollowedPlaylistViewSet(ModelViewSet):
-    queryset = UserFollowedPlaylist.objects.all()
-    serializer_class = UserFollowedPlaylistSerializer
+class LibraryViewSet(ViewSet):
+    
+    permission_classes = [IsAuthenticated]
 
-class UserSavedTrackViewSet(ModelViewSet):
-    queryset = UserSavedTrack.objects.all()
-    serializer_class = UserSavedTrackSerializer
+    @action(detail=False, methods=['get'])
+    def get_library(self, request):
+        user = request.user
+        
+        # Lấy folder và folder con
+        folders = Folder.objects.filter(owner=user, parent=None)
+        folders_data = FolderSerializer(folders, many=True).data
+        
+        # Lấy playlist khoong có folder
+        playlists = UserFollowedPlaylist.objects.filter(user=user, folder=None).select_related('playlist')
+        playlists_data = PlaylistSerializer(playlists, many=True).data
 
-class UserSavedAlbumViewSet(ModelViewSet):
-    queryset = UserSavedAlbum.objects.all()
-    serializer_class = UserSavedAlbumSerializer
+        # Lấy track được lưu
+        saved_tracks = UserSavedTrack.objects.filter(user=user).select_related('track')
+        saved_tracks_data = TrackSerializer(saved_tracks, many=True).data
 
-class UserSavedEpisodeViewSet(ModelViewSet):
-    queryset = UserSavedEpisode.objects.all()
-    serializer_class = UserSavedEpisodeSerializer
+        # Lấy artist đang theo dõi
+        followed_artists = UserFollowedArtist.objects.filter(user=user).select_related('artist')
+        followed_artists_data = ArtistSerializer(followed_artists, many=True).data
+
+        # Lấy episode được lưu
+        saved_episodes = UserSavedEpisode.objects.filter(user=user).select_related('episode')
+        saved_episodes_data = PodcastEpisodeSerializer(saved_episodes, many=True).data
+
+        # Lấy podcast được lưu
+        saved_podcasts = UserFollowedPodcast.objects.filter(user=user).select_related('podcast')
+        saved_podcasts_data = PodcastSerializer(saved_podcasts, many=True).data
+
+        return Response({
+            "folders": folders_data,
+            "playlists": playlists_data,
+            "saved_tracks": saved_tracks_data,
+            "followed_artists": followed_artists_data,
+            "saved_episodes": saved_episodes_data,
+            "saved_podcasts": saved_podcasts_data,
+            "status": "success"
+        }, status=status.HTTP_200_OK)
+        
+    # ------------------------------ Folder ------------------------------
+    @action(detail=False, methods=['post'])
+    def add_folder(self, request):
+        """Thêm folder"""
+        serializer = FolderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(owner=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['delete'])
+    def remove_folder(self, request):
+        """Xóa folder"""
+        folder_id = request.data.get('folder_id')
+        if not folder_id:
+            return Response({"error": "Folder ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        Folder.objects.filter(id=folder_id, owner=request.user).delete()
+        return Response({"message": "Folder removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------ Playlist ------------------------------
+    @action(detail=False, methods=['post'])
+    def add_playlist(self, request):
+        """Thêm playlist"""
+        serializer = PlaylistSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            UserFollowedPlaylist.objects.create(user=request.user, playlist=serializer.instance)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['put'])
+    def update_playlist(self, request):
+        """Cập nhật playlist"""
+        playlist_id = request.data.get('playlist_id')
+        if not playlist_id:
+            return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        if not playlist:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PlaylistSerializer(playlist, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['put'])
+    def add_playlist_to_folder(self, request):
+        """Thêm playlist vào folder"""
+        playlist_id = request.data.get('playlist_id')
+        folder_id = request.data.get('folder_id')
+        if not playlist_id or not folder_id:
+            return Response({"error": "Playlist ID and Folder ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        folder = Folder.objects.filter(id=folder_id, owner=request.user).first()
+        if not playlist or not folder:
+            return Response({"error": "Playlist or Folder not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserFollowedPlaylist.objects.filter(user=request.user, playlist=playlist).update(folder=folder)
+        return Response({"message": "Playlist added to folder", "status": "success"}, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['put'])
+    def remove_playlist_from_folder(self, request):
+        """Xóa playlist khỏi folder"""
+        playlist_id = request.data.get('playlist_id')
+        if not playlist_id:
+            return Response({"error": "Playlist ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        if not playlist:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserFollowedPlaylist.objects.filter(user=request.user, playlist=playlist).update(folder=None)
+        return Response({"message": "Playlist removed from folder", "status": "success"}, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'])
+    def get_playlists(self, request):
+        """Lấy danh sách playlist"""
+        playlists = Playlist.objects.filter(user=request.user)
+        serializer = PlaylistSerializer(playlists, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['delete'])
+    def remove_playlist(self, request):
+        """Xóa playlist"""
+        playlist_id = request.data.get('playlist_id')
+        if not playlist_id:
+            return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        Playlist.objects.filter(id=playlist_id, user=request.user).delete()
+        return Response({"message": "Playlist removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------ Track ------------------------------
+    @action(detail=False, methods=['post'])
+    def save_track(self, request):
+        """Lưu track"""
+        track_id = request.data.get('track_id')
+        if not track_id:
+            return Response({"error": "Track ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        track = Track.objects.filter(id=track_id).first()
+        if not track:
+            return Response({"error": "Track not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserSavedTrack.objects.get_or_create(user=request.user, track=track)
+        return Response({"message": "Track saved", "status": "success"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['delete'])
+    def remove_saved_track(self, request):
+        """Xóa track khỏi danh sách lưu"""
+        track_id = request.data.get('track_id')
+        if not track_id:
+            return Response({"error": "Track ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        track = Track.objects.filter(id=track_id).first()
+        if not track:
+            return Response({"error": "Track not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        UserSavedTrack.objects.filter(user=request.user, track=track).delete()
+        return Response({"message": "Track removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------ Artist ------------------------------
+    @action(detail=False, methods=['post'])
+    def follow_artist(self, request):
+        """Theo dõi artist"""
+        artist_id = request.data.get('artist_id')
+        if not artist_id:
+            return Response({"error": "Artist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        artist = Artist.objects.filter(id=artist_id).first()
+        if not artist:
+            return Response({"error": "Artist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserFollowedArtist.objects.get_or_create(user=request.user, artist=artist)
+        return Response({"message": "Artist followed", "status": "success"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['delete'])
+    def unfollow_artist(self, request):
+        """Bỏ theo dõi artist"""
+        artist_id = request.data.get('artist_id')
+        if not artist_id:
+            return Response({"error": "Artist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        artist = Artist.objects.filter(id=artist_id).first()
+        if not artist:
+            return Response({"error": "Artist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        UserFollowedArtist.objects.filter(user=request.user, artist=artist).delete()
+        return Response({"message": "Artist unfollowed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------ Playlist Follow ------------------------------
+    @action(detail=True, methods=['post'])
+    def follow_playlist(self, request, pk=None):
+        """Theo dõi playlist"""
+        playlist_id = request.data.get('playlist_id')
+        if not playlist_id:
+            return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = Playlist.objects.filter(id=playlist_id).first()
+        if not playlist:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserFollowedPlaylist.objects.get_or_create(user=request.user, playlist=playlist)
+        return Response({"message": "Playlist followed", "status": "success"}, status=status.HTTP_201_CREATED)
+    
+
+    @action(detail=False, methods=['delete'])
+    def unfollow_playlist(self, request):
+        """Bỏ theo dõi playlist"""
+        playlist_id = request.data.get('playlist_id')
+        if not playlist_id:
+            return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        playlist = Playlist.objects.filter(id=playlist_id).first()
+        if not playlist:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        followed_playlist = UserFollowedPlaylist.objects.filter(user=request.user, playlist=playlist)
+        if followed_playlist.user == request.user:
+            return Response({"error": "You cannot unfollow your playlist", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        followed_playlist.delete()
+        return Response({"message": "Playlist unfollowed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------ Episode ------------------------------
+    @action(detail=False, methods=['post'])
+    def save_episode(self, request):
+        """Lưu episode"""
+        episode_id = request.data.get('episode_id')
+        if not episode_id:
+            return Response({"error": "Episode ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        episode = PodcastEpisode.objects.filter(id=episode_id).first()
+        if not episode:
+            return Response({"error": "Episode not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserSavedEpisode.objects.get_or_create(user=request.user, episode=episode)
+        return Response({"message": "Episode saved", "status": "success"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['delete'])
+    def remove_saved_episode(self, request):
+        """Xóa episode khỏi danh sách lưu"""
+        episode_id = request.data.get('episode_id')
+        if not episode_id:
+            return Response({"error": "Episode ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        episode = PodcastEpisode.objects.filter(id=episode_id).first()
+        if not episode:
+            return Response({"error": "Episode not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserSavedEpisode.objects.filter(user=request.user, episode=episode).delete()
+        return Response({"message": "Episode removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------ Podcast ------------------------------
+    @action(detail=False, methods=['post'])
+    def follow_podcast(self, request):
+        """Theo dõi podcast"""
+        podcast_id = request.data.get('podcast_id')
+        if not podcast_id:
+            return Response({"error": "Podcast ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        podcast = Podcast.objects.filter(id=podcast_id).first()
+        if not podcast:
+            return Response({"error": "Podcast not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserFollowedPodcast.objects.get_or_create(user=request.user, podcast=podcast)
+        return Response({"message": "Podcast followed", "status": "success"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['delete'])
+    def unfollow_podcast(self, request):
+        """Bỏ theo dõi podcast"""
+        podcast_id = request.data.get('podcast_id')
+        if not podcast_id:
+            return Response({"error": "Podcast ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        podcast = Podcast.objects.filter(id=podcast_id).first()
+        if not podcast:
+            return Response({"error": "Podcast not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        UserFollowedPodcast.objects.filter(user=request.user, podcast=podcast).delete()
+        return Response({"message": "Podcast unfollowed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+    
+    # ------------------------------ Playlist Items ------------------------------
+    @action(detail=False, methods=['post'])
+    def add_item_to_playlist(self, request):
+        """Thêm item vào playlist"""
+        playlist_id = request.data.get('playlist_id')
+        item_type = request.data.get('item_type')
+        item_id = request.data.get('item_id')
+        item = None
+        if not playlist_id or not item_type or not item_id:
+            return Response({"error": "Playlist ID, item type and item ID are required", "status": "fail"}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+            
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        if not playlist:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        last_item = PlaylistTrackPodcast.objects.filter(playlist=playlist).order_by('-order_index').first()
+        next_order_index = last_item.order_index + 1 if last_item else 0
+        
+        if item_type == 'track':
+            item = Track.objects.filter(id=item_id).first()
+        elif item_type == 'podcast_episode':
+            item = PodcastEpisode.objects.filter(id=item_id).first()
+        
+        if not item:
+            return Response({"error": "Track or Episode not found", "status": "fail"}, 
+                            status=status.HTTP_404_NOT_FOUND)
+        
+        PlaylistTrackPodcast.objects.get_or_create(playlist=playlist, track=item,
+                                                    order_index=next_order_index,
+                                                    added_by_user=request.user)
+        
+        return Response({"message": "Item added successfully.", "status": "success"}, 
+                        status=status.HTTP_201_CREATED)
+        
+    @action(detail=False, methods=['put'])
+    def change_item_order(self, request):
+        """Thay đổi thứ tự item trong playlist"""
+        playlist_id = request.data.get('playlist_id')
+        item_id = request.data.get('item_id')
+        new_order_index = request.data.get('new_order_index')
+        
+        
+    
