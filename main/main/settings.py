@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     'apps.albums',
     # 'apps.group_sessions',
     # 'apps.analytics',
+    'apps.favorites',
+    'apps.histories',
 
     'apps.authen',
     "drf_yasg",  # Swagger
