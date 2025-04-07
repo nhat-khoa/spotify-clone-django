@@ -6,6 +6,7 @@ from apps.artists.models import Artist
 
 class TrackSerializer(serializers.ModelSerializer):
     artist = serializers.PrimaryKeyRelatedField(queryset=Artist.objects.all())  # Nhận UUID
+    # artist = ArtistSerializer()  # Nhận artist object
     class Meta:
         model = Track
         fields = '__all__'

@@ -51,7 +51,7 @@ class ArtistPick(BaseModel):
     # Content reference - only one of these should be used
     track = models.ForeignKey('tracks.Track', on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_picks')
     album = models.ForeignKey('albums.Album', on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_picks')
-    playlist = models.ForeignKey('playlists.Playlist', on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_picks')
+    playlist = models.ForeignKey('interactions.Playlist', on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_picks')
     podcast = models.ForeignKey('podcasts.Podcast', on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_picks')
     episode = models.ForeignKey('podcasts.PodcastEpisode', on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_picks')
     external_url = models.URLField(blank=True)

@@ -25,12 +25,13 @@ class TrackViewSet(GenericViewSet):
     parser_classes = (MultiPartParser, FormParser)
 
     def get_permissions(self):
-        if self.action == 'create':
-            permission_classes = [IsAuthenticated, IsArtistUser]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsAuthenticated, IsArtistUser, IsTrackOwner]
-        else: # list, retrieve, get_track_artists
-            permission_classes = [AllowAny]
+        match self.action:
+            case 'create' | 'upload':
+                permission_classes = [IsAuthenticated, IsArtistUser]
+            case 'update' | 'partial_update' | 'destroy' | 'save_track_artist' | 'delete_track_artist':
+                permission_classes = [IsAuthenticated, IsArtistUser, IsTrackOwner]
+            case _:  # Mặc định (list, retrieve, get_track_artists, ...)
+                permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
     
     # get api/tracks/
@@ -101,7 +102,6 @@ class TrackViewSet(GenericViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
     @action(detail=True, methods=['get'])
-    @pc([AllowAny])
     def get_track_artists(self, request, pk=None):
         insance = Track.objects.get(id=pk)
         if not insance:
@@ -114,7 +114,6 @@ class TrackViewSet(GenericViewSet):
         })
         
     @action(detail=False, methods=['post'])
-    @pc([IsAuthenticated, IsArtistUser])
     def upload(self, request):
         """Upload track with audio file"""
         try:
@@ -152,7 +151,7 @@ class TrackViewSet(GenericViewSet):
             # Create track using serializer
             serializer = self.get_serializer(data=track_data)
             if serializer.is_valid():
-                serializer.save(artist=request.user.artist_profile)
+                serializer.save()
                 return Response(
                     serializer.data,
                     status=status.HTTP_201_CREATED
@@ -169,13 +168,7 @@ class TrackViewSet(GenericViewSet):
             )
             
     @action(detail=True, methods=['post'])
-    @pc([IsAuthenticated, IsArtistUser, IsTrackOwner])
-    def save_track_artist(self, request, pk=None):        
-        instance = get_object_or_404(Track, id=pk)
-        
-        if instance.artist != request.user.artist_profile:
-            return Response({'error': 'You do not have permission to add collaborators to this track'}, status=status.HTTP_403_FORBIDDEN)
-        
+    def save_track_artist(self, request, pk=None):    
         artist_id = request.data.get('artist_id')
         if not artist_id:
             return Response({'error': 'Artist ID is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -183,10 +176,10 @@ class TrackViewSet(GenericViewSet):
         if artist_id == request.user.artist_profile.id:
             return Response({'error': 'Cannot add yourself as a collaborator'}, status=status.HTTP_400_BAD_REQUEST)
         
-        
         role = request.data.get('role', 'featured')  # Default role is 'featured'
 
         try:
+            instance = self.get_object()    
             artist = Artist.objects.get(id=artist_id)
             track_artist = TrackArtist.objects.create(artist=artist, track=instance, role=role)
             serializer = TrackArtistSerializer(track_artist)
@@ -195,9 +188,23 @@ class TrackViewSet(GenericViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
         
-        
-        
+    @action(detail=True, methods=['delete'])
+    def delete_track_artist(self, request, pk=None):
+        artist_id = request.data.get('artist_id')
+        if not artist_id:
+            return Response({'error': 'Artist ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            instance = self.get_object()
+            track_artist = TrackArtist.objects.get(track=instance, artist__id=artist_id)
+            track_artist.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except TrackArtist.DoesNotExist:
+            return Response({'error': 'Track artist not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    
 
 class TrackArtistViewSet(ModelViewSet):
     queryset = TrackArtist.objects.all()

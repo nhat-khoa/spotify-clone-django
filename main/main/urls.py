@@ -43,7 +43,6 @@ urlpatterns += [
     path('api/', include('apps.users.urls')),
     path('api/', include('apps.artists.urls')),
     path('api/', include('apps.tracks.urls')),
-    path('api/', include('apps.playlists.urls')),
     path('api/', include('apps.podcasts.urls')),
     path('api/', include('apps.interactions.urls')),
     path('api/', include('apps.categories.urls')),
