@@ -5,6 +5,7 @@ from apps.core.utils import generate_unique_filename
 class Podcaster(BaseModel):
     """Model for podcast creators"""
     user = models.OneToOneField('users.User', on_delete=models.CASCADE, related_name='podcaster_profile')
+    name = models.CharField(max_length=255, default='', null=True, blank=True)
     bio = models.TextField(blank=True)
     verified = models.BooleanField(default=False)
     
@@ -73,7 +74,7 @@ class PodcastEpisode(BaseModel):
     description = models.TextField()
     audio_url = models.FileField(upload_to=generate_unique_filename,blank=True)
     transcript_url = models.FileField(upload_to=generate_unique_filename,blank=True)
-    duration_seconds = models.IntegerField()
+    duration_ms = models.IntegerField()
     season = models.IntegerField(null=True, blank=True)
     episode_number = models.IntegerField(null=True, blank=True)
     explicit = models.BooleanField(default=False)

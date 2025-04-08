@@ -21,31 +21,27 @@ class Playlist(BaseModel):
     is_public = models.BooleanField(default=True)
     likes_count = models.IntegerField(default=0)
     collaborators = models.JSONField(default=dict, blank=True)
+    items = models.JSONField(default=dict, blank=True)  # List of track IDs or podcast episode IDs
+    """ 
+    items = [
+        {
+            "uid": "unique_id_1",
+            "item_type": "track",  # or "podcast_episode"
+            "item_id": "item_id_1",
+            "item_name": "Track Name",
+            "owner_id": "artist_id_1", # artist_id or podcaster_id
+            "owner_name": "Artist Name or Podcaster Name", 
+            "album_or_podcast": "Album or podcast Name",
+            "album_or_podcast_id": "Album or podcast ID",
+            "item_image": "https://example.com/image.jpg",
+            "item_duration_ms": 180000,  # in milliseconds,
+            "created_at": "2023-10-01T12:00:00Z",
+        }
+    ]
+    """
     
     def __str__(self):
         return self.name
-
-
-class PlaylistTrackPodcast(BaseModel):
-    """Model for tracks/podcasts in playlists"""
-    playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE, related_name='items')
-    track = models.ForeignKey('tracks.Track', on_delete=models.SET_NULL, null=True, blank=True, related_name='in_playlists')
-    podcast_ep = models.ForeignKey('podcasts.PodcastEpisode', on_delete=models.SET_NULL, null=True, blank=True, related_name='in_playlists')
-    
-    order_index = models.IntegerField()
-    added_by_user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, related_name='added_playlist_items')
-    
-    class Meta:
-        ordering = ['order_index']
-        verbose_name = 'Playlist Item'
-        verbose_name_plural = 'Playlist Items'
-        
-    def __str__(self):
-        item = self.track.title if self.track else self.podcast.title
-        return f"{self.playlist} - {item} (#{self.order_index})"
-
-
-
 
 class UserFollowedArtist(BaseModel):
     """Model for users following artists"""

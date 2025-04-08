@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     UserFollowedArtist, UserFollowedPodcast, UserFollowedPlaylist,
     UserSavedTrack, UserSavedAlbum, UserSavedEpisode, Folder, Playlist,
-    PlaylistTrackPodcast
+
 )
 
 class PlaylistSerializer(serializers.ModelSerializer):
@@ -10,7 +10,7 @@ class PlaylistSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Playlist
-        fields = ['id', 'name', 'description', 'avatar_url', 'is_public', 'likes_count', 'collaborators', 'user_id']
+        fields = ['id', 'name', 'description', 'avatar_url', 'is_public', 'likes_count', 'collaborators','items', 'user_id']
         extra_kwargs = {
             'name': {'required': True},
             'description': {'required': False},
@@ -18,6 +18,7 @@ class PlaylistSerializer(serializers.ModelSerializer):
             'is_public': {'required': False},
             'likes_count': {'required': False},
             'collaborators': {'required': False},
+            'items': {'required': False},
         }
         
 class FolderSerializer(serializers.ModelSerializer):
@@ -33,12 +34,6 @@ class FolderSerializer(serializers.ModelSerializer):
         """Lấy danh sách folder con"""
         subfolders = Folder.objects.filter(parent=obj)
         return FolderSerializer(subfolders, many=True).data    
-
-
-class PlaylistTrackPodcastSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PlaylistTrackPodcast
-        fields = '__all__'
 
 
 class UserFollowedArtistSerializer(serializers.ModelSerializer):
