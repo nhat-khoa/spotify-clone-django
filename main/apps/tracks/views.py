@@ -15,6 +15,7 @@ from rest_framework.settings import api_settings
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
+from apps.albums.models import Album
 
 
 
@@ -123,24 +124,18 @@ class TrackViewSet(GenericViewSet):
                     {'error': 'No audio file provided'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
-             # Check if file is MP3
-            if not audio_file.name.lower().endswith('.mp3'):
-                return Response(
-                    {'error': 'Only MP3 files are allowed'}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                
+            if not request.data.get('album_id'):
+                album = Album.objects.create(
+                    title=request.data.get('album_title'),
+                    artist=request.user.artist_profile, 
                 )
+            else:
+                album = get_object_or_404(Album, id=request.data.get('album_id'))
             
-            if audio_file.size > 20 * 1024 * 1024:  # 20MB in bytes
-                return Response(
-                    {'error': 'File size too large. Maximum size is 20MB'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
             # Get track data from request
             track_data = {
                 'title': request.data.get('title'),
-                'artist': request.user.artist_profile.id,
                 'duration_ms': request.data.get('duration_ms', 0),
                 'language': request.data.get('language', ''),
                 'plain_lyrics': request.data.get('lyrics', ''),
@@ -151,7 +146,8 @@ class TrackViewSet(GenericViewSet):
             # Create track using serializer
             serializer = self.get_serializer(data=track_data)
             if serializer.is_valid():
-                serializer.save()
+                serializer.save(artist=request.user.artist_profile,
+                                album=album)
                 return Response(
                     serializer.data,
                     status=status.HTTP_201_CREATED

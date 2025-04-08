@@ -1,7 +1,7 @@
 from rest_framework.viewsets import ViewSet
 from .models import (
     UserFollowedArtist, UserFollowedPodcast, UserFollowedPlaylist,
-    UserSavedTrack, UserSavedEpisode, Folder, Playlist, PlaylistTrackPodcast
+    UserSavedTrack, UserSavedEpisode, Folder, Playlist
 )
 from .serializers import (
     FolderSerializer,
@@ -17,6 +17,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from django.shortcuts import get_object_or_404
+import secrets
+import datetime
 
 
 
@@ -311,39 +314,67 @@ class LibraryViewSet(ViewSet):
         item_type = request.data.get('item_type')
         item_id = request.data.get('item_id')
         item = None
-        if not playlist_id or not item_type or not item_id:
-            return Response({"error": "Playlist ID, item type and item ID are required", "status": "fail"}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-            
-        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
-        if not playlist:
-            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
-        
-        last_item = PlaylistTrackPodcast.objects.filter(playlist=playlist).order_by('-order_index').first()
-        next_order_index = last_item.order_index + 1 if last_item else 0
-        
         if item_type == 'track':
-            item = Track.objects.filter(id=item_id).first()
+            item = get_object_or_404(Track, id=item_id)
         elif item_type == 'podcast_episode':
-            item = PodcastEpisode.objects.filter(id=item_id).first()
+            item = get_object_or_404(PodcastEpisode, id=item_id)
         
-        if not item:
-            return Response({"error": "Track or Episode not found", "status": "fail"}, 
-                            status=status.HTTP_404_NOT_FOUND)
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        if not playlist.items:
+            playlist.items = []
         
-        PlaylistTrackPodcast.objects.get_or_create(playlist=playlist, track=item,
-                                                    order_index=next_order_index,
-                                                    added_by_user=request.user)
+        playlist.items.append({
+            "uid": secrets.token_hex(8),
+            "item_type": item_type,
+            "item_id": str(item.id),
+            "item_name": item.title,
+            "owner_id": str(item.artist.id) if item_type == 'track' else str(item.podcast.podcaster.id),
+            "owner_name": item.artist.name if item_type == 'track' else item.podcast.podcaster.name,
+            "album_or_podcast": item.album.title if item_type == 'track' else item.podcast.title,
+            "album_or_podcast_id": str(item.album.id) if item_type == 'track' else str(item.podcast.id),
+            "item_image":   item.album.avatar_url.url
+                            if item_type == 'track' and item.album and item.album.avatar_url 
+                            else item.cover_art_image_url.url 
+                            if item_type == 'podcast_episode' and item.cover_art_image_url 
+                            else '',
+            "item_duration_ms": item.duration_ms,
+            "created_at": datetime.datetime.now().isoformat(),
+        })
         
-        return Response({"message": "Item added successfully.", "status": "success"}, 
-                        status=status.HTTP_201_CREATED)
+        playlist.save()
+        return Response({"message": "Item added to playlist", "status": "success",
+                         "data": playlist.items[-1] }, status=status.HTTP_201_CREATED)
+        
         
     @action(detail=False, methods=['put'])
     def change_item_order(self, request):
         """Thay đổi thứ tự item trong playlist"""
+        user = request.user
         playlist_id = request.data.get('playlist_id')
-        item_id = request.data.get('item_id')
-        new_order_index = request.data.get('new_order_index')
+        uids = request.data.get('uids', [])
+        move_type = request.data.get('move_type')
+        from_uid = request.data.get('from_uid')
+        
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        if not playlist:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        items = playlist.items
+        moving_items = [item for item in items if item['uid'] in uids]
+        items = [item for item in items if item['uid'] not in uids]
+        targed_item = [item for item in items if item['uid'] == from_uid][0]
+        index_inserting = items.index(targed_item) + 1 if move_type == 'after' else items.index(targed_item)
+        items = items[:index_inserting] + moving_items + items[index_inserting:]
+        playlist.items = items
+        playlist.save()
+        return Response({"message": "Item order changed", "status": "success",
+                         "data": playlist.items }, status=status.HTTP_200_OK)
+            
+
         
         
+        
+
+
+            
     
