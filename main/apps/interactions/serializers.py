@@ -4,13 +4,18 @@ from .models import (
     UserSavedTrack, UserSavedAlbum, UserSavedEpisode, Folder, Playlist,
 
 )
+from apps.users.serializers import UserSerializer
 
 class PlaylistSerializer(serializers.ModelSerializer):
     user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True)
-    
+    user = UserSerializer(read_only=True)
+    # avatar_url = serializers.ImageField(use_url=True)
     class Meta:
         model = Playlist
-        fields = ['id', 'name', 'description', 'avatar_url', 'is_public', 'likes_count', 'collaborators','items', 'user_id']
+        fields = ['id', 'name', 'description', 
+                  'avatar_url', 
+                  'is_public', 'likes_count', 
+                  'collaborators','items', 'user_id','user']
         extra_kwargs = {
             'name': {'required': True},
             'description': {'required': False},
@@ -20,6 +25,15 @@ class PlaylistSerializer(serializers.ModelSerializer):
             'collaborators': {'required': False},
             'items': {'required': False},
         }
+        
+    def validate_avatar_url(self, value):
+        """Validate avatar_url field"""
+        if not value or not value.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            raise serializers.ValidationError('Only PNG, JPG, or JPEG files are allowed')
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError('File size too large. Maximum size is 5MB')
+        
+        return value
         
 class FolderSerializer(serializers.ModelSerializer):
     """Serializer cho folder (hỗ trợ nested folders)"""

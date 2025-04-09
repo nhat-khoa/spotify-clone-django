@@ -128,6 +128,13 @@ def login(request):
         return Response({
             'refresh_token': str(refresh),
             'access_token': str(refresh.access_token),
-        })
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": user.full_name,
+                "avatar_google_url": user.avatar_google_url,
+                "avatar_url": user.avatar_url if user.avatar_url else None,
+            }
+        }, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
