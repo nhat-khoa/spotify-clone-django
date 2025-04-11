@@ -1,25 +1,12 @@
 from rest_framework.viewsets import ViewSet
 from .models import (
-    UserFollowedArtist, UserFollowedPodcast, UserFollowedPlaylist,
-    UserSavedTrack, UserSavedEpisode, Folder, Playlist
+    UserFollowedPodcast
 )
-from .serializers import (
-    FolderSerializer,
-    PlaylistSerializer
-)
-from apps.tracks.serializers import TrackSerializer
-from apps.tracks.models import Track
-from apps.artists.serializers import ArtistSerializer
-from apps.artists.models import Artist
-from apps.podcasts.models import PodcastEpisode, Podcast
-from apps.podcasts.serializers import PodcastSerializer, PodcastEpisodeSerializer
+from apps.podcasts.models import Podcast
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
-import secrets
-import datetime
 
 
 class PodcastViewSet(ViewSet):
