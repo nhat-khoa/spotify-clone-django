@@ -6,6 +6,7 @@ from .artist_views import ArtistViewSet
 from .podcast_views import PodcastViewSet  
 from .episode_views import PodcastEpisodeViewSet
 from .track_views import TrackViewSet
+from .album_views import AlbumViewSet
 
 router = DefaultRouter()
 router.register(r'libraries', LibraryViewSet, basename='libraries')
@@ -15,6 +16,7 @@ router.register(r'libraries/podcasts', PodcastViewSet, basename='libraries/podca
 router.register(r'libraries/artists', ArtistViewSet, basename='libraries/artists')
 router.register(r'libraries/episodes', PodcastEpisodeViewSet, basename='libraries/episodes')
 router.register(r'libraries/tracks', TrackViewSet, basename='libraries/tracks')
+router.register(r'libraries/albums', AlbumViewSet, basename='libraries/albums')
 
 
 

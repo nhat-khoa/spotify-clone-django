@@ -53,7 +53,6 @@ urlpatterns += [
     # path('', include('apps.analytics.urls')),
 
     path("api/auth/", include("apps.authen.urls")),
-    path('api/favorites/', include('apps.favorites.urls')),
 
     # Swagger
     re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),

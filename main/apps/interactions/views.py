@@ -1,7 +1,7 @@
 from rest_framework.viewsets import ViewSet
 from .models import (
     UserFollowedArtist, UserFollowedPodcast, UserFollowedPlaylist,
-    UserSavedTrack, UserSavedEpisode, Folder, Playlist
+    UserSavedTrack,UserSavedAlbum, UserSavedEpisode, Folder, Playlist
 )
 from .serializers import (
     FolderSerializer,
@@ -21,7 +21,8 @@ from django.shortcuts import get_object_or_404
 import secrets
 import datetime
 
-
+from .serializers import UserSavedTrackSerializer
+from .serializers import UserSavedAlbumSerializer
 
 class LibraryViewSet(ViewSet):
     
@@ -42,7 +43,11 @@ class LibraryViewSet(ViewSet):
 
         # Lấy track được lưu
         saved_tracks = UserSavedTrack.objects.filter(user=user).select_related('track')
-        saved_tracks_data = TrackSerializer(saved_tracks, many=True).data
+        saved_tracks_data = UserSavedTrackSerializer(saved_tracks, many=True).data
+
+        # Lấy album được lưu
+        saved_albums = UserSavedAlbum.objects.filter(user=user).select_related('album')
+        saved_albums_data = UserSavedAlbumSerializer(saved_albums, many=True).data
 
         # Lấy artist đang theo dõi
         followed_artists = UserFollowedArtist.objects.filter(user=user).select_related('artist')
@@ -60,6 +65,7 @@ class LibraryViewSet(ViewSet):
             "folders": folders_data,
             "playlists": playlists_data,
             "saved_tracks": saved_tracks_data,
+            "saved_albums": saved_albums_data,
             "followed_artists": followed_artists_data,
             "saved_episodes": saved_episodes_data,
             "saved_podcasts": saved_podcasts_data,
