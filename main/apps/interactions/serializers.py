@@ -5,6 +5,8 @@ from .models import (
 
 )
 from apps.users.serializers import UserSerializer
+from apps.tracks.serializers import TrackSerializer
+from apps.albums.serializers import AlbumSerializer
 
 class PlaylistSerializer(serializers.ModelSerializer):
     user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True)
@@ -78,11 +80,13 @@ class UserFollowedPlaylistSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class UserSavedTrackSerializer(serializers.ModelSerializer):
+    track = TrackSerializer(read_only=True)
     class Meta:
         model = UserSavedTrack
         fields = '__all__'
 
 class UserSavedAlbumSerializer(serializers.ModelSerializer):
+    album = AlbumSerializer(read_only=True)
     class Meta:
         model = UserSavedAlbum
         fields = '__all__'

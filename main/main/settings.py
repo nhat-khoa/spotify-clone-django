@@ -58,8 +58,6 @@ INSTALLED_APPS = [
     'apps.albums',
     # 'apps.group_sessions',
     # 'apps.analytics',
-    'apps.favorites',
-    'apps.histories',
 
     'apps.authen',
     "drf_yasg",  # Swagger
@@ -102,7 +100,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'apps.core.middleware.JWTAuthenticationMiddleware',
+    # 'apps.core.middleware.JWTAuthenticationMiddleware',
 ]
 
 ROOT_URLCONF = 'main.urls'

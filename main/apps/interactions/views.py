@@ -16,7 +16,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 
-
+from .serializers import UserSavedTrackSerializer
+from .serializers import UserSavedAlbumSerializer
 
 class LibraryViewSet(ViewSet):
     
@@ -63,6 +64,7 @@ class LibraryViewSet(ViewSet):
             "folders": folders_data,
             "playlists": playlists_data,
             "saved_tracks": saved_tracks_data,
+            "saved_albums": saved_albums_data,
             "followed_artists": followed_artists_data,
             "saved_episodes": saved_episodes_data,
             "saved_albums": saved_albums_data,
