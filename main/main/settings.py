@@ -162,7 +162,10 @@ CORS_ALLOWED_ORIGINS = [
     os.environ.get('FRONTEND_URL',  'http://localhost:3000'),
 ]
 CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOW_HEADERS = [
+    "authorization",
+    "content-type",
+]
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

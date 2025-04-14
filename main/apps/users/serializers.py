@@ -15,3 +15,21 @@ class UserSerializer(serializers.ModelSerializer):
             phone=validated_data.get('phone', '')
         )
         return user
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'email',
+            'full_name',
+            'description',
+            'gender',
+            'phone',
+            'age',
+            'date_of_birth',
+            'country',
+            'subscription_type',
+            'avatar_url',
+            'avatar_google_url',
+        )
+        read_only_fields = ('email', 'avatar_google_url')
