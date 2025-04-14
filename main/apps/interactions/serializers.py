@@ -39,8 +39,8 @@ class PlaylistSerializer(serializers.ModelSerializer):
         
 class FolderSerializer(serializers.ModelSerializer):
     """Serializer cho folder (hỗ trợ nested folders)"""
-    subfolders = serializers.SerializerMethodField()
-    playlists = serializers.SerializerMethodField()
+    subfolders = serializers.SerializerMethodField(read_only=True)
+    playlists = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Folder
@@ -49,7 +49,9 @@ class FolderSerializer(serializers.ModelSerializer):
             'name': {'required': True},
             'parent': {'required': False},
             'owner': {'required': False},
-        }   
+            'subfolders': {'required': False},
+            'playlists': {'required': False},
+        }
     
     
     def get_subfolders(self, obj):

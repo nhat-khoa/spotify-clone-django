@@ -27,7 +27,10 @@ class PlaylistViewSet(ViewSet):
     @action(detail=False, methods=['post'])
     def add_playlist(self, request):
         """Thêm playlist"""
-        serializer = PlaylistSerializer(data=request.data)
+        data = request.data.copy()
+        if not data.get('name'):
+            data['name'] = 'Playlist #' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        serializer = PlaylistSerializer(data=data, context={"request": request})
         if serializer.is_valid():
             serializer.save(user=request.user)
             UserFollowedPlaylist.objects.create(user=request.user, playlist=serializer.instance)

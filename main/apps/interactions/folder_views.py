@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+import datetime
 
 class FolderViewSet(ViewSet):
 
@@ -18,11 +19,25 @@ class FolderViewSet(ViewSet):
     @action(detail=False, methods=['post'])
     def add_folder(self, request):
         """Thêm folder"""
-        serializer = FolderSerializer(data=request.data)
+        data = request.data.copy()
+        if not data.get('name'):
+            data['name'] = 'New Folder #' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        serializer = FolderSerializer(data=data, context={"request": request})
         if serializer.is_valid():
             serializer.save(owner=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'])
+    def get_folder_by_id(self, request):
+        """Lấy folder theo ID"""
+        folder_id = request.query_params.get('folder_id')
+        if not folder_id:
+            return Response({"error": "Folder ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        folder = get_object_or_404(Folder, id=folder_id, owner=request.user)
+        serializer = FolderSerializer(folder, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 
     @action(detail=False, methods=['delete'])
     def remove_folder(self, request):
