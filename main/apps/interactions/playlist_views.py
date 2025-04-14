@@ -16,13 +16,15 @@ from django.shortcuts import get_object_or_404
 import secrets
 import datetime
 from django.db.models import Count
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
 
 class PlaylistViewSet(ViewSet):
-    
+    queryset = Playlist.objects.all()
+    serializer_class = PlaylistSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     
     @action(detail=False, methods=['post'])
     def add_playlist(self, request):
@@ -55,13 +57,15 @@ class PlaylistViewSet(ViewSet):
     def add_playlist_to_folder(self, request):
         """Thêm playlist vào folder"""
         playlist_id = request.data.get('playlist_id')
-        folder_id = request.data.get('folder_id')
+        folder_id = request.data.get('parent_folder_id')
         if not playlist_id or not folder_id:
             return Response({"error": "Playlist ID and Folder ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
 
         playlist = get_object_or_404(Playlist, id=playlist_id, is_public=True)
         folder = get_object_or_404(Folder, id=folder_id, owner=request.user)
-        UserFollowedPlaylist.objects.get_or_create(user=request.user, playlist=playlist).update(folder=folder)
+        ufp = UserFollowedPlaylist.objects.get_or_create(user=request.user, playlist=playlist)
+        ufp[0].folder = folder
+        ufp[0].save()
         return Response({"message": "Playlist added to folder", "status": "success"}, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['put'])
