@@ -94,7 +94,7 @@ class FolderViewSet(ViewSet):
         if not folder_id:
             return Response({"error": "Playlist ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
 
-        folder = get_object_or_404(Folder, id=folder_id, user=request.user)
+        folder = get_object_or_404(Folder, id=folder_id, owner=request.user)
         folder.parent = None
         folder.save()
         return Response({"message": "Playlist removed from folder", "status": "success"}, status=status.HTTP_200_OK)
