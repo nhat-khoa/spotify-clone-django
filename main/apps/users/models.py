@@ -47,6 +47,7 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
     
     avatar_google_url = models.CharField(max_length=900, blank=True)
+    premium_expired = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']

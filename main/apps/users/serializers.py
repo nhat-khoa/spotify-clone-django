@@ -31,5 +31,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'subscription_type',
             'avatar_url',
             'avatar_google_url',
+            'premium_expired',
         )
         read_only_fields = ('email', 'avatar_google_url')

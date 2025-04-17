@@ -4,6 +4,7 @@ from .views import (
     SubscriptionPlanViewSet, UserSubscriptionViewSet, 
     SubscriptionMemberViewSet, PaymentTransactionViewSet
 )
+from .payment_views import create_payment, zalopay_callback, order_status
 
 router = DefaultRouter()
 router.register(r'subscription-plans', SubscriptionPlanViewSet, basename='subscription-plan')
@@ -13,4 +14,8 @@ router.register(r'payment-transactions', PaymentTransactionViewSet, basename='pa
 
 urlpatterns = [
     path('', include(router.urls)),
+
+    path('payment/create/', create_payment, name='create-payment'),
+    path('payment/callback/', zalopay_callback, name='callback'),
+    path('payment/status/', order_status, name='status'),
 ]
