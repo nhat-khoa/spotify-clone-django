@@ -83,7 +83,7 @@ class PlaylistViewSet(ViewSet):
     def get_playlists(self, request):
         """Lấy danh sách playlist"""
         playlists = Playlist.objects.filter(user=request.user)
-        serializer = PlaylistSerializer(playlists, many=True)
+        serializer = PlaylistSerializer(playlists, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])
@@ -105,6 +105,7 @@ class PlaylistViewSet(ViewSet):
     def remove_playlist(self, request):
         """Xóa playlist"""
         playlist_id = request.data.get('playlist_id')
+        print(playlist_id)
         if not playlist_id:
             return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
         
