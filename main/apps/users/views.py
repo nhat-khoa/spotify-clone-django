@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
-
+from django.utils import timezone
 from .models import User
 from .serializers import UserProfileSerializer
 class UserProfileUpdateView(APIView):
@@ -30,3 +30,14 @@ class UserProfileUpdateView(APIView):
         user = request.user
         serializer = UserProfileSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class CheckPremiumStatusView(APIView):
+    permission_classes = [IsAuthenticated]  # Yêu cầu đăng nhập
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        is_premium = user.premium_expired and user.premium_expired > timezone.now()
+        return Response({
+            "is_premium": is_premium,
+            "premium_expired": user.premium_expired
+        }, status=status.HTTP_200_OK)

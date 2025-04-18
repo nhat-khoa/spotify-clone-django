@@ -69,6 +69,7 @@ def google_login(request):
                 "subscription_type": user.subscription_type,
                 "avatar_url": user.avatar_url.url if user.avatar_url else "",
                 "thumbnail_url": user.thumbnail_url.url if user.thumbnail_url else "",
+                "premium_expired": user.premium_expired
             }
         }, status=status.HTTP_200_OK)
 
