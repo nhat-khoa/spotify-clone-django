@@ -67,7 +67,6 @@ class LibraryViewSet(ViewSet):
             "saved_albums": saved_albums_data,
             "followed_artists": followed_artists_data,
             "saved_episodes": saved_episodes_data,
-            "saved_albums": saved_albums_data,
             "saved_podcasts": followed_podcasts_data,
             "status": "success"
         }, status=status.HTTP_200_OK)
