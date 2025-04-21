@@ -1,15 +1,15 @@
 from rest_framework import serializers
 
-from apps.artists.serializers import ArtistSerializer
 from .models import Track, TrackArtist
-from apps.artists.models import Artist
-from apps.albums.models import Album
+from apps.artists.serializers import ArtistSerializer
 from apps.albums.serializers import AlbumSerializer
+from apps.interactions.models import UserSavedTrack
 
 class TrackSerializer(serializers.ModelSerializer):
     artist = ArtistSerializer(read_only=True)  # Assuming you want to show artist details
     album = AlbumSerializer(read_only=True)  # Assuming you want to show album details
-    
+    is_favorite = serializers.SerializerMethodField()
+
     class Meta:
         model = Track
         fields = '__all__'
@@ -19,6 +19,7 @@ class TrackSerializer(serializers.ModelSerializer):
             'artist': {'required': False},  # Assuming artist is required
             'album': {'required': False},  # Assuming album is required
         }
+        
     def validate_audio_file_path(self, value):
         # Validate file extension
         if not value.name.lower().endswith('.mp3'):
@@ -38,6 +39,12 @@ class TrackSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('File size too large. Maximum size is 5MB')
         
         return value
+    
+    def get_is_favorite(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            return UserSavedTrack.objects.filter(user=user, track=obj).exists()
+        return False
     
 
 class TrackArtistSerializer(serializers.ModelSerializer):

@@ -25,7 +25,7 @@ class AlbumViewSet(ViewSet):
         UserSavedAlbum.objects.get_or_create(user=request.user, album=album)
         return Response({"message": "Album saved", "status": "success"}, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['delete'])
+    @action(detail=False, methods=['post'])
     def remove_saved_album(self, request):
         """Xóa album khỏi danh sách lưu"""
         album_id = request.data.get('album_id')
@@ -36,4 +36,4 @@ class AlbumViewSet(ViewSet):
             return Response({"error": "Album not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
         
         UserSavedAlbum.objects.filter(user=request.user, album=album).delete()
-        return Response({"message": "Album removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Album removed", "status": "success"}, status=status.HTTP_200_OK)

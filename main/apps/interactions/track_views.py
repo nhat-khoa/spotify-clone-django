@@ -24,12 +24,19 @@ class TrackViewSet(ViewSet):
         UserSavedTrack.objects.get_or_create(user=request.user, track=track)
         return Response({"message": "Track saved", "status": "success"}, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['delete'])
+    @action(detail=False, methods=['post'])
     def remove_saved_track(self, request):
-        """Xóa track khỏi danh sách lưu"""
+        """Xóa track khỏi danh sách yêu thích"""
         track_id = request.data.get('track_id')
         if not track_id:
             return Response({"error": "Track ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
         track = get_object_or_404(Track, id=track_id)
-        UserSavedTrack.objects.filter(user=request.user, track=track).delete()
-        return Response({"message": "Track removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+        
+        # Xóa track khỏi danh sách yêu thích của user
+        deleted_count, _ = UserSavedTrack.objects.filter(user=request.user, track=track).delete()
+
+        # Kiểm tra xem có track nào bị xóa không
+        if deleted_count == 0:
+            return Response({"message": "Track not found in your saved list", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({"message": "Track removed", "status": "success"}, status=status.HTTP_200_OK)
