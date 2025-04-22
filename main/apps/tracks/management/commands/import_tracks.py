@@ -12,8 +12,8 @@ from apps.tracks.models import Track
 from apps.albums.models import Album
 
 MEDIA_ROOT = "media/"
-start_line = 52
-end_line = 60
+start_line = 1
+end_line = 30
 file_path = r"C:\Users\ACER\Documents\Code\spotify-clone-django\spotify_songs.csv" # url đến file csv
 ffmpeg_location = r"C:\Users\ACER\Documents\Code\spotify-clone-django\ffmpeg-2025-03-31-git-35c091f4b7-essentials_build\ffmpeg-2025-03-31-git-35c091f4b7-essentials_build\bin" 
 # đường dẫn đến ffmpeg.exe, chưa có thì tải về từ https://ffmpeg.org/download.html 
