@@ -29,26 +29,23 @@ def db_metadata_view(request):
 
 @require_GET
 def multi_table_data_view(request):
-    table_names = request.GET.get("tables")
-    if not table_names:
-        return JsonResponse({"error": "Thiếu tham số tables"}, status=400)
+    fixed_tables = {
+        "albums_album": ["id", "title", "artist_id","is_premium"],
+        "artists_artist": ["id", "name"],
+        "tracks_track": ["id", "title", "duration_ms", "popularity", "album_id","artist_id", "is_premium"]
+    }
 
-    table_list = [name.strip() for name in table_names.split(",")]
     data = {}
 
-    for table in table_list:
+    for table, fields in fixed_tables.items():
         try:
-            # Lấy model tương ứng
             model = next(
                 m for m in apps.get_models()
-                if m._meta.db_table == table or m.__name__.lower() == table.lower()
+                if m._meta.db_table == table
             )
+            rows = list(model.objects.all().values(*fields)[:50])
+            data[table] = rows
         except StopIteration:
             data[table] = f"Bảng '{table}' không tồn tại"
-            continue
-
-        # Lấy dữ liệu tối đa 50 row (giới hạn lại cho nhẹ)
-        rows = list(model.objects.all()[:50].values())
-        data[table] = rows
 
     return JsonResponse(data, safe=False)
