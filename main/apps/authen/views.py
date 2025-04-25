@@ -69,6 +69,7 @@ def google_login(request):
                 "subscription_type": user.subscription_type,
                 "avatar_url": user.avatar_url.url if user.avatar_url else "",
                 "thumbnail_url": user.thumbnail_url.url if user.thumbnail_url else "",
+                "premium_expired": user.premium_expired
             }
         }, status=status.HTTP_200_OK)
 
@@ -142,7 +143,7 @@ def login(request):
                 "email": user.email,
                 "full_name": user.full_name,
                 "avatar_google_url": user.avatar_google_url,
-                "avatar_url": user.avatar_url if user.avatar_url else None,
+                "avatar_url": user.avatar_url.url if user.avatar_url else None,
             }
         }, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)

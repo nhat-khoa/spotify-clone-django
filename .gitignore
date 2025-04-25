@@ -16,3 +16,7 @@ config/settings_local.py
 ffmpeg-2025-03-31-git-35c091f4b7-essentials_build/
 
 spotify_songs.csv
+
+__pycache__/
+**/__pycache__/
+**/migrations/

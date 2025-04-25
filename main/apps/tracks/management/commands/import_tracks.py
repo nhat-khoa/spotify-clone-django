@@ -3,6 +3,8 @@ from itertools import islice
 import uuid
 import os
 import yt_dlp
+import requests
+
 from django.core.management.base import BaseCommand
 from apps.users.models import User
 from apps.artists.models import Artist
@@ -10,12 +12,11 @@ from apps.tracks.models import Track
 from apps.albums.models import Album
 
 MEDIA_ROOT = "media/"
-start_line = 32
-end_line = 33
-# file_path = r"D:\User\workspace\ProjectsOnSchool\spotify-clone-data\spotify_songs.csv\spotify_songs.csv" # url đến file csv
-file_path = r"C:\Users\MSI VN\Downloads\spotify_songs.csv"
-# ffmpeg_location = r"D:\programfile\ffmpeg-2025-03-27-git-114fccc4a5-full_build\bin" 
-ffmpeg_location = r"C:\Users\MSI VN\Downloads\ffmpeg-7.1.1-essentials_build\ffmpeg-7.1.1-essentials_build\bin"
+
+start_line = 1
+end_line = 30
+file_path = r"C:\Users\ACER\Documents\Code\spotify-clone-django\spotify_songs.csv" # url đến file csv
+ffmpeg_location = r"C:\Users\ACER\Documents\Code\spotify-clone-django\ffmpeg-2025-03-31-git-35c091f4b7-essentials_build\ffmpeg-2025-03-31-git-35c091f4b7-essentials_build\bin" 
 # đường dẫn đến ffmpeg.exe, chưa có thì tải về từ https://ffmpeg.org/download.html 
 # và giải nén vào thư mục nào đó, sau đó chỉ cần chỉ đường dẫn đến ffmpeg.exe là được
 
@@ -32,7 +33,6 @@ class Command(BaseCommand):
         self.import_tracks(file_path)
 
     def import_tracks(self, file_path):
-        
         
         with open(file_path, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -85,7 +85,7 @@ class Command(BaseCommand):
                 )
 
                 # Tải file nhạc từ YouTube
-                self.download_track(track_name, artist_name, audio_file_path)
+                self.download_track(track_name, artist_name, audio_file_path, track=track)
 
     def create_random_user(self, artist_name):
         """Tạo user ngẫu nhiên nếu nghệ sĩ chưa có tài khoản."""
@@ -95,8 +95,8 @@ class Command(BaseCommand):
         user.save()
         return user
 
-    def download_track(self, track_name, artist_name, file_path):
-        """Tìm kiếm trên YouTube và tải file MP3 về"""
+    def download_track(self, track_name, artist_name, file_path, track=None):
+
         search_query = f"{track_name} {artist_name} audio"
 
         ydl_opts = {
@@ -107,27 +107,50 @@ class Command(BaseCommand):
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            "ffmpeg_location" : ffmpeg_location
+            "ffmpeg_location": ffmpeg_location
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 search_results = ydl.extract_info(f"ytsearch:{search_query}", download=False)
-                
-                # Kiểm tra nếu kết quả trả về là danh sách
+
+                # Lấy video đầu tiên trong kết quả tìm kiếm
                 if "entries" in search_results and search_results["entries"]:
-                    video_info = search_results["entries"][0]  # Lấy video đầu tiên
+                    video_info = search_results["entries"][0]
                 else:
                     print(f"Không tìm thấy video cho {track_name} - {artist_name}")
                     return
 
-                video_url = video_info.get("url")  # Lấy URL video
+                video_url = video_info.get("url")
+                thumbnail_url = video_info.get("thumbnail")  # ✅ Lấy thumbnail
+
                 if not video_url:
                     print(f"Lỗi: Không tìm thấy URL cho {track_name} - {artist_name}")
                     return
-                
-                
+
+                # ✅ Nếu có thumbnail, tải về và lưu đường dẫn nội bộ vào track.avatar_url
+                if track and thumbnail_url:
+                    try:
+                        response = requests.get(thumbnail_url)
+                        if response.status_code == 200:
+                            avatar_filename = f"track_avatars/{uuid.uuid4().hex}.jpg"
+                            avatar_full_path = os.path.join(MEDIA_ROOT, avatar_filename)
+
+                            os.makedirs(os.path.dirname(avatar_full_path), exist_ok=True)
+                            with open(avatar_full_path, "wb") as f:
+                                f.write(response.content)
+
+                            track.avatar_url = avatar_filename  # Đường dẫn tương đối
+                            track.save(update_fields=["avatar_url"])
+                            print(f"Saved avatar for {track_name} at {avatar_filename}")
+                        else:
+                            print(f"Không thể tải thumbnail cho {track_name}")
+                    except Exception as img_err:
+                        print(f"Lỗi khi tải avatar cho {track_name}: {img_err}")
+
+                # ✅ Tải file mp3
                 ydl.download([video_url])
-                print(f"Downloaded: {file_path}")
+                print(f"Downloaded MP3: {file_path}")
+
             except Exception as e:
                 print(f"Failed to download {track_name} - {artist_name}: {e}")

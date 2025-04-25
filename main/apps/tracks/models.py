@@ -22,6 +22,9 @@ class Track(BaseModel):
     is_instrumental = models.BooleanField(default=False)
     
     source = models.CharField(max_length=255,blank=True)
+
+    avatar_url = models.FileField(upload_to=generate_unique_filename, blank=True, null=True)
+    is_premium = models.BooleanField(default=False)
     
     def __str__(self):
         return self.title
