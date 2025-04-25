@@ -211,3 +211,10 @@ class PlaylistViewSet(ViewSet):
         playlist.save()
         return Response({"message": "Item removed from playlist", "status": "success",
                          "data": playlist.items }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='my-public-playlists')
+    def my_public_playlists(self, request):
+        """Lấy danh sách playlist công khai của chính mình"""
+        playlists = Playlist.objects.filter(user=request.user, is_public=True)
+        serializer = PlaylistSerializer(playlists, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

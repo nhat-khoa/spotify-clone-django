@@ -10,9 +10,15 @@ class UserStreamViewSet(viewsets.ModelViewSet):
     serializer_class = UserStreamSerializer
     permission_classes = [AllowAny]
     
+    # def get_queryset(self):
+    #     # Filter by user_id for security
+    #     user_id = self.request.query_params.get('user_id')
+    #     if user_id:
+    #         return UserStream.objects.filter(user_id=user_id)
+    #     return UserStream.objects.none()
+    
     def get_queryset(self):
-        # Filter by user_id for security
         user_id = self.request.query_params.get('user_id')
         if user_id:
-            return UserStream.objects.filter(user_id=user_id)
+            return UserStream.objects(user_id=user_id).order_by('-timestamp')
         return UserStream.objects.none()

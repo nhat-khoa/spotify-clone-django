@@ -10,10 +10,12 @@ from apps.tracks.models import Track
 from apps.albums.models import Album
 
 MEDIA_ROOT = "media/"
-start_line = 300
-end_line = 302
-file_path = r"D:\User\workspace\ProjectsOnSchool\spotify-clone-data\spotify_songs.csv\spotify_songs.csv" # url đến file csv
-ffmpeg_location = r"D:\programfile\ffmpeg-2025-03-27-git-114fccc4a5-full_build\bin" 
+start_line = 32
+end_line = 33
+# file_path = r"D:\User\workspace\ProjectsOnSchool\spotify-clone-data\spotify_songs.csv\spotify_songs.csv" # url đến file csv
+file_path = r"C:\Users\MSI VN\Downloads\spotify_songs.csv"
+# ffmpeg_location = r"D:\programfile\ffmpeg-2025-03-27-git-114fccc4a5-full_build\bin" 
+ffmpeg_location = r"C:\Users\MSI VN\Downloads\ffmpeg-7.1.1-essentials_build\ffmpeg-7.1.1-essentials_build\bin"
 # đường dẫn đến ffmpeg.exe, chưa có thì tải về từ https://ffmpeg.org/download.html 
 # và giải nén vào thư mục nào đó, sau đó chỉ cần chỉ đường dẫn đến ffmpeg.exe là được
 
