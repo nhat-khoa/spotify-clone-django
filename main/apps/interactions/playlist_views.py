@@ -120,11 +120,16 @@ class PlaylistViewSet(ViewSet):
             return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
 
         playlist = get_object_or_404(Playlist, id=playlist_id)
+        if playlist.user == request.user:
+            return Response({"error": "You cannot follow your own playlist", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
         UserFollowedPlaylist.objects.get_or_create(user=request.user, playlist=playlist)
-        return Response({"message": "Playlist followed", "status": "success"}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Playlist followed", "status": "success",
+                         "result": PlaylistSerializer(playlist, context={"request": request}).data}, 
+                        status=status.HTTP_200_OK)
     
 
-    @action(detail=False, methods=['delete'])
+    @action(detail=False, methods=['post'])
     def unfollow_playlist(self, request):
         """Bỏ theo dõi playlist"""
         playlist_id = request.data.get('playlist_id')
@@ -137,7 +142,9 @@ class PlaylistViewSet(ViewSet):
             return Response({"error": "You cannot unfollow your playlist", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
         
         followed_playlist.delete()
-        return Response({"message": "Playlist unfollowed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Playlist unfollowed", "status": "success",
+                         "result": PlaylistSerializer(playlist, context={"request": request}).data},
+                        status=status.HTTP_200_OK)
     
     # ------------------------------ Playlist Items ------------------------------
     @action(detail=False, methods=['post'])
@@ -176,7 +183,7 @@ class PlaylistViewSet(ViewSet):
         
         playlist.save()
         return Response({"message": "Item added to playlist", "status": "success",
-                         "data": playlist.items[-1] }, status=status.HTTP_201_CREATED)
+                         "result": playlist.items }, status=status.HTTP_201_CREATED)
         
         
     @action(detail=False, methods=['put'])
@@ -194,15 +201,42 @@ class PlaylistViewSet(ViewSet):
         items = playlist.items
         moving_items = [item for item in items if item['uid'] in uids]
         items = [item for item in items if item['uid'] not in uids]
-        targed_item = [item for item in items if item['uid'] == from_uid][0]
+        targed_items = [item for item in items if item['uid'] == from_uid]
+        if not targed_items:
+            return Response({"error": "Items does not change", "status": "fail"}, status=status.HTTP_200_OK)
+        
+        targed_item = targed_items[0]
+        
         index_inserting = items.index(targed_item) + 1 if move_type == 'after' else items.index(targed_item)
         items = items[:index_inserting] + moving_items + items[index_inserting:]
         playlist.items = items
         playlist.save()
         return Response({"message": "Item order changed", "status": "success",
-                         "data": playlist.items }, status=status.HTTP_200_OK)
+                         "result": playlist.items }, status=status.HTTP_200_OK)
         
-    @action(detail=False, methods=['delete'])
+        
+    @action(detail=False, methods=['put'])
+    def change_item_order2(self, request):
+        """Thay đổi thứ tự item trong playlist"""
+        playlist_id = request.data.get('playlist_id')
+        uids = request.data.get('uids')
+        
+        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        if not playlist or not uids:
+            return Response({"error": "Playlist not found or uids are None", 
+                             "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        new_items = []
+        for index, uid in enumerate(uids):
+            new_items.append([item for item in playlist.items if item['uid'] == uid][0])
+           
+        playlist.items = new_items
+        playlist.save()
+        return Response({"message": "Item order changed", "status": "success",
+                         "result": playlist.items }, status=status.HTTP_200_OK)    
+    
+        
+    @action(detail=False, methods=['post'])
     def remove_item_from_playlist(self, request):
         """Xóa item khỏi playlist"""
         playlist_id = request.data.get('playlist_id')
@@ -215,4 +249,4 @@ class PlaylistViewSet(ViewSet):
         playlist.items = items
         playlist.save()
         return Response({"message": "Item removed from playlist", "status": "success",
-                         "data": playlist.items }, status=status.HTTP_200_OK)
+                         "result": playlist.items }, status=status.HTTP_200_OK)

@@ -11,12 +11,13 @@ from apps.albums.serializers import AlbumSerializer
 class PlaylistSerializer(serializers.ModelSerializer):
     user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True)
     user = UserSerializer(read_only=True)
+    is_favorite = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Playlist
         fields = ['id', 'name', 'description', 
                   'avatar_url', 
                   'is_public', 'likes_count', 
-                  'collaborators','items', 'user_id','user']
+                  'collaborators','items', 'user_id','user', 'is_favorite']
         extra_kwargs = {
             'name': {'required': True},
             'description': {'required': False},
@@ -35,6 +36,13 @@ class PlaylistSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('File size too large. Maximum size is 5MB')
         
         return value
+    
+    def get_is_favorite(self, obj):
+        """Check if the playlist is favorite"""
+        user = self.context['request'].user
+        if user.is_authenticated:
+            return UserFollowedPlaylist.objects.filter(user=user, playlist=obj).exists()
+        return False
     
         
 class FolderSerializer(serializers.ModelSerializer):

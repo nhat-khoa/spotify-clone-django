@@ -127,7 +127,7 @@ class TrackViewSet(GenericViewSet):
                 
             if not request.data.get('album_id'):
                 album = Album.objects.create(
-                    title=request.data.get('album_title'),
+                    title=request.data.get('album_title',request.data.get('title')),
                     artist=request.user.artist_profile, 
                 )
             else:
