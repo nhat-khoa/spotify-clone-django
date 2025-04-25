@@ -1,4 +1,6 @@
 from rest_framework.viewsets import ViewSet
+
+from apps.artists.serializers import ArtistSerializer
 from .models import (
     UserFollowedArtist,
 )
@@ -10,6 +12,8 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 class ArtistViewSet(ViewSet):
+    queryset = Artist.objects.all()
+    serializer_class = ArtistSerializer
     permission_classes = [IsAuthenticated]
     
     @action(detail=False, methods=['post'])
@@ -32,3 +36,10 @@ class ArtistViewSet(ViewSet):
         artist = get_object_or_404(Artist, id=artist_id)        
         get_object_or_404(UserFollowedArtist, user=request.user, artist=artist).delete()
         return Response({"message": "Artist unfollowed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=False, methods=['get'], url_path='my-followed')
+    def my_followed_artists(self, request):
+        followed = UserFollowedArtist.objects.filter(user=request.user).select_related('artist')
+        artists = [f.artist for f in followed]
+        serializer = ArtistSerializer(artists, many=True)
+        return Response(serializer.data)

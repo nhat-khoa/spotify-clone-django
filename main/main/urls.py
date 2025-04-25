@@ -48,6 +48,7 @@ urlpatterns += [
     path('api/', include('apps.categories.urls')),
     path('api/', include('apps.subscriptions.urls')),
     path('api/', include('apps.albums.urls')),
+    path('api/', include('apps.core.urls')),
 
     # path('', include('apps.group_sessions.urls')),
     # path('', include('apps.analytics.urls')),
