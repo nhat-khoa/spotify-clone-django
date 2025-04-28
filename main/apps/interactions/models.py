@@ -1,6 +1,7 @@
 from django.db import models
 from apps.core.models import BaseModel  # Import BaseModel từ core
 from apps.core.utils import generate_unique_filename
+import secrets
 
 class Folder(BaseModel):
     """Model for folders to organize playlists"""
@@ -19,8 +20,20 @@ class Playlist(BaseModel):
     description = models.TextField(blank=True)
     avatar_url = models.ImageField(upload_to=generate_unique_filename, null=True, blank=True)
     is_public = models.BooleanField(default=True)
-    likes_count = models.IntegerField(default=0)
     collaborators = models.JSONField(default=dict, blank=True)
+    share_token = models.CharField(max_length=64, blank=True, null=True)
+    """
+    List of user IDs who can edit the playlist.
+    "collaborators": {
+           ""user_id_1": {
+                 'joined_at': str(timezone.now()),
+            },
+            "user_id_2": {
+                  'joined_at': str(timezone.now()),
+            }
+    }
+
+    """    
     items = models.JSONField(default=dict, blank=True)  # List of track IDs or podcast episode IDs
     """ 
     items = [
@@ -42,6 +55,11 @@ class Playlist(BaseModel):
     
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.share_token:
+            self.share_token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
 
 class UserFollowedArtist(BaseModel):
     """Model for users following artists"""

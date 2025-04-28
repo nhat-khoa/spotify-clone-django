@@ -7,6 +7,7 @@ from .serializers import (
     PlaylistSerializer,UserFollowedPlaylistSerializer
 )
 from apps.tracks.models import Track
+from apps.users.models import User
 from apps.podcasts.models import PodcastEpisode
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -61,8 +62,11 @@ class PlaylistViewSet(ViewSet):
         if not playlist_id or not folder_id:
             return Response({"error": "Playlist ID and Folder ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
 
-        playlist = get_object_or_404(Playlist, id=playlist_id, is_public=True)
         folder = get_object_or_404(Folder, id=folder_id, owner=request.user)
+        playlist = get_object_or_404(Playlist, id=playlist_id)
+        if playlist.is_public == False and playlist.user != request.user and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_403_FORBIDDEN)
+        
         ufp = UserFollowedPlaylist.objects.get_or_create(user=request.user, playlist=playlist)
         ufp[0].folder = folder
         ufp[0].save()
@@ -75,7 +79,7 @@ class PlaylistViewSet(ViewSet):
         if not playlist_id:
             return Response({"error": "Playlist ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
 
-        playlist = get_object_or_404(Playlist, id=playlist_id, user=request.user)
+        playlist = get_object_or_404(Playlist, id=playlist_id)
         UserFollowedPlaylist.objects.filter(user=request.user, playlist=playlist).update(folder=None)
         return Response({"message": "Playlist removed from folder", "status": "success"}, status=status.HTTP_200_OK)
     
@@ -93,13 +97,12 @@ class PlaylistViewSet(ViewSet):
         if not playlist_id:
             return Response({"error": "Playlist ID is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
 
-        playlist = get_object_or_404(Playlist, id=playlist_id, is_public=True)
-        # Count số người theo dõi
-        followers_count = UserFollowedPlaylist.objects.filter(playlist=playlist).count()
+        playlist = get_object_or_404(Playlist, id=playlist_id)
+        if playlist.is_public == False and playlist.user != request.user and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
         serializer = PlaylistSerializer(playlist, context={"request": request})
-        data = serializer.data
-        data['followers_count'] = followers_count
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['delete'])
     def remove_playlist(self, request):
@@ -122,6 +125,8 @@ class PlaylistViewSet(ViewSet):
         playlist = get_object_or_404(Playlist, id=playlist_id)
         if playlist.user == request.user:
             return Response({"error": "You cannot follow your own playlist", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        if playlist.is_public == False and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
         
         UserFollowedPlaylist.objects.get_or_create(user=request.user, playlist=playlist)
         return Response({"message": "Playlist followed", "status": "success",
@@ -154,12 +159,19 @@ class PlaylistViewSet(ViewSet):
         item_type = request.data.get('item_type')
         item_id = request.data.get('item_id')
         item = None
+        
         if item_type == 'track':
             item = get_object_or_404(Track, id=item_id)
         elif item_type == 'podcast_episode':
             item = get_object_or_404(PodcastEpisode, id=item_id)
         
-        playlist = get_object_or_404(Playlist, id=playlist_id, user=request.user)
+        playlist = get_object_or_404(Playlist, id=playlist_id)
+        
+        if playlist.user != request.user and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "You do not have permission to add items to this playlist", 
+                             "status": "fail"}, status=status.HTTP_403_FORBIDDEN)
+        
+        
         if not playlist.items:
             playlist.items = []
             
@@ -178,6 +190,7 @@ class PlaylistViewSet(ViewSet):
                             if item_type == 'podcast_episode' and item.cover_art_image_url 
                             else '',
             "item_duration_ms": item.duration_ms,
+            "explicit": item.explicit,
             "created_at": datetime.datetime.now().isoformat(),
         })
         
@@ -194,9 +207,13 @@ class PlaylistViewSet(ViewSet):
         move_type = request.data.get('move_type')
         from_uid = request.data.get('from_uid')
         
-        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        playlist = Playlist.objects.filter(id=playlist_id).first()
         if not playlist:
             return Response({"error": "Playlist not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if playlist.user != request.user and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "You do not have permission to add items to this playlist", 
+                             "status": "fail"}, status=status.HTTP_403_FORBIDDEN)
         
         items = playlist.items
         moving_items = [item for item in items if item['uid'] in uids]
@@ -204,7 +221,7 @@ class PlaylistViewSet(ViewSet):
         targed_items = [item for item in items if item['uid'] == from_uid]
         if not targed_items:
             return Response({"error": "Items does not change", "status": "fail"}, status=status.HTTP_200_OK)
-        
+
         targed_item = targed_items[0]
         
         index_inserting = items.index(targed_item) + 1 if move_type == 'after' else items.index(targed_item)
@@ -221,10 +238,14 @@ class PlaylistViewSet(ViewSet):
         playlist_id = request.data.get('playlist_id')
         uids = request.data.get('uids')
         
-        playlist = Playlist.objects.filter(id=playlist_id, user=request.user).first()
+        playlist = Playlist.objects.filter(id=playlist_id).first()
         if not playlist or not uids:
             return Response({"error": "Playlist not found or uids are None", 
                              "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
+            
+        if playlist.user != request.user and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "You do not have permission to add items to this playlist", 
+                             "status": "fail"}, status=status.HTTP_403_FORBIDDEN)
         
         new_items = []
         for index, uid in enumerate(uids):
@@ -242,7 +263,10 @@ class PlaylistViewSet(ViewSet):
         playlist_id = request.data.get('playlist_id')
         item_uid = request.data.get('item_uid')
         
-        playlist = get_object_or_404(Playlist, id=playlist_id, user=request.user)
+        playlist = get_object_or_404(Playlist, id=playlist_id)
+        if playlist.user != request.user and str(request.user.id) not in playlist.collaborators:
+            return Response({"error": "You do not have permission to add items to this playlist", 
+                             "status": "fail"}, status=status.HTTP_403_FORBIDDEN)
         
         items = playlist.items
         items = [item for item in items if item['uid'] != item_uid]
@@ -250,10 +274,99 @@ class PlaylistViewSet(ViewSet):
         playlist.save()
         return Response({"message": "Item removed from playlist", "status": "success",
                          "result": playlist.items }, status=status.HTTP_200_OK)
+        
+    
+    # ------------------------------ my_public_playlists ------------------------------
 
     @action(detail=False, methods=['get'], url_path='my-public-playlists')
     def my_public_playlists(self, request):
         """Lấy danh sách playlist công khai của chính mình"""
         playlists = Playlist.objects.filter(user=request.user, is_public=True)
-        serializer = PlaylistSerializer(playlists, many=True)
+        serializer = PlaylistSerializer(playlists, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+    # ------------------------------ Collaborators ------------------------------
+    @action(detail=False, methods=['post'])
+    def join_playlist(self, request):
+        """Lấy danh sách playlist mà người dùng đã tham gia"""
+        playlist_id = request.data.get('playlist_id')
+        token = request.data.get('token')
+        
+        if not playlist_id or not token:
+            return Response({"error": "Playlist ID and token are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = get_object_or_404(Playlist, id=playlist_id, share_token=token)
+        
+        if playlist.user == request.user:
+            return Response({"error": "You cannot join your own playlist", "status": "success"}, status=status.HTTP_200_OK)
+
+        playlist.collaborators[str(request.user.id)] = {
+            'name': request.user.email,
+        }
+        playlist.save()
+
+        return Response({'message': 'Joined as collaborator', 'result': playlist.id,
+                         'status': 'success'}, status=status.HTTP_200_OK)
+        
+    @action(detail=False, methods=['post'])
+    def leave_playlist(self, request):
+        """Rời khỏi playlist"""
+        playlist_id = request.data.get('playlist_id')
+
+        playlist = get_object_or_404(Playlist, id=playlist_id)
+        
+        if playlist.user == request.user:
+            return Response({"error": "You cannot leave your own playlist", "status": "success"}, status=status.HTTP_200_OK)
+
+        if str(request.user.id) in playlist.collaborators:
+            del playlist.collaborators[str(request.user.id)]
+            playlist.save()
+
+        return Response({'message': 'Left the playlist', 'result': playlist.id,
+                         'status': 'success'}, status=status.HTTP_200_OK)
+        
+    @action(detail=False, methods=['post'])
+    def remove_collaborator(self, request):
+        """Xóa người dùng khỏi danh sách cộng tác viên"""
+        playlist_id = request.data.get('playlist_id')
+        user_id = request.data.get('user_id')
+        
+        if not playlist_id or not user_id:
+            return Response({"error": "Playlist ID and user ID are required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = get_object_or_404(Playlist, id=playlist_id, user=request.user)
+        
+        if str(user_id) in playlist.collaborators:
+            del playlist.collaborators[str(user_id)]
+            playlist.save()
+
+        return Response({'message': 'Removed collaborator', 
+                         'result': PlaylistSerializer(playlist, context={"request": request}).data,
+                         'status': 'success'}, 
+                        status=status.HTTP_200_OK)
+        
+    @action(detail=False, methods=['post'])
+    def add_collaborator_via_email(self, request):
+        """Thêm người dùng vào danh sách cộng tác viên qua email"""
+        playlist_id = request.data.get('playlist_id')
+        email = request.data.get('email')
+        
+        if not email:
+            return Response({"error": "Email is required", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if email == request.user.email:
+            return Response({"error": "You cannot add yourself as a collaborator", "status": "fail"}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlist = get_object_or_404(Playlist, id=playlist_id, user=request.user)
+
+        user = get_object_or_404(User, email=email)
+        if str(user.id) not in playlist.collaborators:
+            playlist.collaborators[str(user.id)] = {
+                'name': user.email,
+            }
+            playlist.save()
+
+        return Response({'message': 'Added collaborator', 
+                         'result': PlaylistSerializer(playlist, context={"request": request}).data,
+                         'status': 'success'}, status=status.HTTP_200_OK)

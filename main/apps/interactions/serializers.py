@@ -5,6 +5,7 @@ from .models import (
 
 )
 from apps.users.serializers import UserSerializer
+from apps.users.models import User
 from apps.tracks.serializers import TrackSerializer
 from apps.albums.serializers import AlbumSerializer
 
@@ -12,12 +13,15 @@ class PlaylistSerializer(serializers.ModelSerializer):
     user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True)
     user = UserSerializer(read_only=True)
     is_favorite = serializers.SerializerMethodField(read_only=True)
+    likes_count = serializers.SerializerMethodField(read_only=True)
+    collaborators = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Playlist
         fields = ['id', 'name', 'description', 
                   'avatar_url', 
                   'is_public', 'likes_count', 
-                  'collaborators','items', 'user_id','user', 'is_favorite']
+                  'collaborators','items', 'user_id','user', 'is_favorite',
+                  'share_token']
         extra_kwargs = {
             'name': {'required': True},
             'description': {'required': False},
@@ -26,6 +30,7 @@ class PlaylistSerializer(serializers.ModelSerializer):
             'likes_count': {'required': False},
             'collaborators': {'required': False},
             'items': {'required': False},
+            'share_token': {'required': False}
         }
         
     def validate_avatar_url(self, value):
@@ -43,6 +48,20 @@ class PlaylistSerializer(serializers.ModelSerializer):
         if user.is_authenticated:
             return UserFollowedPlaylist.objects.filter(user=user, playlist=obj).exists()
         return False
+    
+    def get_likes_count(self, obj):
+        """Get the number of likes for the playlist"""
+        return UserFollowedPlaylist.objects.filter(playlist=obj).count() - 1
+    
+    
+    def get_collaborators(self, obj):
+        """Get the list of collaborators for the playlist"""
+        users = []
+        for user_id in obj.collaborators:
+            user = User.objects.filter(id=user_id).first()
+            users.append(user)
+        
+        return UserSerializer(users, many=True,context=self.context).data if users else []
     
         
 class FolderSerializer(serializers.ModelSerializer):
@@ -65,7 +84,7 @@ class FolderSerializer(serializers.ModelSerializer):
     def get_subfolders(self, obj):
         """Lấy danh sách folder con"""
         subfolders = Folder.objects.filter(parent=obj)
-        return FolderSerializer(subfolders, many=True).data   
+        return FolderSerializer(subfolders, many=True, context=self.context).data   
     
     def get_playlists(self, obj):
         """Lấy danh sách playlist trong folder"""
