@@ -9,7 +9,13 @@ class PodcasterSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
 # Podcast episode serializer
+class SimplePodcasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Podcaster
+        fields = '__all__'
+
 class SimplePodcastSerializer(serializers.ModelSerializer):
+    podcaster = SimplePodcasterSerializer(read_only=True)
     class Meta:
         model = Podcast
         fields = '__all__'
