@@ -45,7 +45,6 @@ urlpatterns += [
     path('api/', include('apps.tracks.urls')),
     path('api/', include('apps.podcasts.urls')),
     path('api/', include('apps.interactions.urls')),
-    path('api/', include('apps.categories.urls')),
     path('api/', include('apps.subscriptions.urls')),
     path('api/', include('apps.albums.urls')),
     path('api/', include('apps.core.urls')),

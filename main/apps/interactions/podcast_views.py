@@ -3,6 +3,7 @@ from .models import (
     UserFollowedPodcast
 )
 from apps.podcasts.models import Podcast
+from apps.podcasts.serializers import PodcastSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -24,10 +25,14 @@ class PodcastViewSet(ViewSet):
         if not podcast:
             return Response({"error": "Podcast not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
 
-        UserFollowedPodcast.objects.get_or_create(user=request.user, podcast=podcast)
-        return Response({"message": "Podcast followed", "status": "success"}, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['delete'])
+        UserFollowedPodcast.objects.get_or_create(user=request.user, podcast=podcast)
+        return Response({"message": "Podcast followed", "status": "success",
+                         "result": PodcastSerializer(podcast,context={'request': request}).data
+                         },
+                        status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
     def unfollow_podcast(self, request):
         """Bỏ theo dõi podcast"""
         podcast_id = request.data.get('podcast_id')
@@ -39,4 +44,7 @@ class PodcastViewSet(ViewSet):
             return Response({"error": "Podcast not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
 
         UserFollowedPodcast.objects.filter(user=request.user, podcast=podcast).delete()
-        return Response({"message": "Podcast unfollowed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Podcast unfollowed", "status": "success",
+                         "result": PodcastSerializer(podcast,context={'request': request}).data
+                         
+                         }, status=status.HTTP_200_OK)

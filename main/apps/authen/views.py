@@ -143,7 +143,7 @@ def login(request):
                 "email": user.email,
                 "full_name": user.full_name,
                 "avatar_google_url": user.avatar_google_url,
-                "avatar_url": user.avatar_url.url if user.avatar_url else None,
+                "avatar_url": request.build_absolute_uri(user.avatar_url.url)  if user.avatar_url else None,
             }
         }, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)

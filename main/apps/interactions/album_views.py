@@ -5,11 +5,15 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from apps.albums.models import Album
+from apps.albums.serializers import AlbumSerializer
 from .models import UserSavedAlbum
+from django.shortcuts import get_object_or_404
 
 
 
 class AlbumViewSet(ViewSet):
+    queryset = Album.objects.all()
+    serializer_class = AlbumSerializer
     permission_classes = [IsAuthenticated]
     
     @action(detail=False, methods=['post'])
@@ -23,7 +27,9 @@ class AlbumViewSet(ViewSet):
             return Response({"error": "Album not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
 
         UserSavedAlbum.objects.get_or_create(user=request.user, album=album)
-        return Response({"message": "Album saved", "status": "success"}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Album saved", "status": "success",
+                         "result": AlbumSerializer(album,context={'request': request}).data}, 
+                        status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'])
     def remove_saved_album(self, request):
@@ -36,4 +42,13 @@ class AlbumViewSet(ViewSet):
             return Response({"error": "Album not found", "status": "fail"}, status=status.HTTP_404_NOT_FOUND)
         
         UserSavedAlbum.objects.filter(user=request.user, album=album).delete()
-        return Response({"message": "Album removed", "status": "success"}, status=status.HTTP_200_OK)
+        return Response({"message": "Album removed", "status": "success",
+                         "result": AlbumSerializer(album,context={'request': request}).data},
+                        status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'])
+    def get_album_details(self, request, pk=None):
+        """Lấy thông tin chi tiết album"""
+        album = get_object_or_404(Album, pk=pk)
+        serializer = AlbumSerializer(album, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

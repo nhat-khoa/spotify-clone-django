@@ -2,10 +2,12 @@ from rest_framework import serializers
 from .models import Album, AlbumArtist
 from apps.artists.serializers import ArtistSerializer
 from apps.interactions.models import UserSavedAlbum
+from apps.tracks.models import Track
+
 
 class AlbumSerializer(serializers.ModelSerializer):
     artist = ArtistSerializer(read_only=True)
-    tracks = serializers.PrimaryKeyRelatedField(many=True, read_only=True)  
+    tracks = serializers.SerializerMethodField(read_only=True)
     is_favorite = serializers.SerializerMethodField()
 
     class Meta:
@@ -17,6 +19,10 @@ class AlbumSerializer(serializers.ModelSerializer):
         if user.is_authenticated:
             return UserSavedAlbum.objects.filter(user=user, album=obj).exists()
         return False
+    
+    def get_tracks(self, obj):
+        return Track.objects.filter(album=obj).values()
+       
         
 
 

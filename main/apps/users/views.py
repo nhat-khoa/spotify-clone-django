@@ -14,6 +14,10 @@ from rest_framework import status
 from django.utils import timezone
 from .models import User
 from .serializers import UserProfileSerializer
+from django.utils.decorators import method_decorator
+from rest_framework.viewsets import ModelViewSet
+
+
 class UserProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]  # Cho phép upload file
@@ -41,3 +45,9 @@ class CheckPremiumStatusView(APIView):
             "is_premium": is_premium,
             "premium_expired": user.premium_expired
         }, status=status.HTTP_200_OK)
+        
+class UserViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    

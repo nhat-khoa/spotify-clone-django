@@ -31,6 +31,9 @@ ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS', '*')]
 
 AUTH_USER_MODEL = 'users.User'
 
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
+
 # Application definition
 
 INSTALLED_APPS = [

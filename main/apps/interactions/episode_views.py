@@ -3,6 +3,7 @@ from .models import (
     UserSavedEpisode
 )
 from apps.podcasts.models import PodcastEpisode
+from apps.podcasts.serializers import PodcastEpisodeSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,9 +23,11 @@ class PodcastEpisodeViewSet(ViewSet):
         
         episode = get_object_or_404(PodcastEpisode, id=episode_id)
         UserSavedEpisode.objects.get_or_create(user=request.user, episode=episode)
-        return Response({"message": "Episode saved", "status": "success"}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Episode saved", "status": "success",
+                         "result": PodcastEpisodeSerializer(episode, context={'request': request}).data
+                         }, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['delete'])
+    @action(detail=False, methods=['post'])
     def remove_saved_episode(self, request):
         """Xóa episode khỏi danh sách lưu"""
         episode_id = request.data.get('episode_id')
@@ -33,4 +36,6 @@ class PodcastEpisodeViewSet(ViewSet):
         
         episode = get_object_or_404(PodcastEpisode, id=episode_id)
         get_object_or_404(UserSavedEpisode, user=request.user, episode=episode).delete()
-        return Response({"message": "Episode removed", "status": "success"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Episode removed", "status": "success",
+                         "result": PodcastEpisodeSerializer(episode, context={'request': request}).data
+                         }, status=status.HTTP_200_OK)

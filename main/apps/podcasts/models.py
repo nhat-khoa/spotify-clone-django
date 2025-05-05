@@ -23,37 +23,23 @@ class Podcast(BaseModel):
     ]
     
     podcaster = models.ForeignKey(Podcaster, on_delete=models.CASCADE, related_name='podcasts')
-    public_web_url = models.URLField(unique=True)
     title = models.CharField(max_length=255)
     author_name = models.CharField(max_length=255)
-    copyright_notice = models.CharField(max_length=255, blank=True)
-    cover_art_image_url = models.ImageField(upload_to=generate_unique_filename)
-    thumbnail_url = models.ImageField(upload_to=generate_unique_filename)
-    description = models.JSONField(default=dict)
-    rss_feed_url = models.URLField(blank=True)
-    rss_feed_file = models.FileField(upload_to=generate_unique_filename, blank=True)
+    copyright_notice = models.CharField(max_length=255, blank=True,null=True)
+    cover_art_image_url = models.ImageField(upload_to=generate_unique_filename, blank=True, null=True)
+    thumbnail_url = models.ImageField(upload_to=generate_unique_filename, blank=True, null=True)
+    description = models.JSONField(default=dict, blank=True, null=True)
+    rss_feed_url = models.URLField(blank=True,null=True)
+    rss_feed_file = models.FileField(upload_to=generate_unique_filename, blank=True,null=True)
     licensor = models.CharField(max_length=255, blank=True)
-    language = models.CharField(max_length=50)
+    language = models.CharField(max_length=50, blank=True)
     explicit = models.BooleanField(default=False)
-    
+    rate = models.JSONField(default=dict, blank=True, null=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='active')
     
     
     def __str__(self):
         return self.title
-
-
-class PodcastRate(BaseModel):
-    """Model for podcast ratings"""
-    podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE, related_name='ratings')
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='podcast_ratings')
-    rate = models.IntegerField()  # Assuming 1-5 scale
-    
-    class Meta:
-        unique_together = ('podcast', 'user')
-        
-    def __str__(self):
-        return f"{self.podcast} rated {self.rate} by {self.user}"
 
 
 class PodcastEpisode(BaseModel):
@@ -71,15 +57,15 @@ class PodcastEpisode(BaseModel):
     
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE, related_name='episodes')
     title = models.CharField(max_length=255)
-    description = models.TextField()
-    audio_url = models.FileField(upload_to=generate_unique_filename,blank=True)
-    transcript_url = models.FileField(upload_to=generate_unique_filename,blank=True)
-    duration_ms = models.IntegerField()
+    description = models.TextField(blank=True, null=True)
+    audio_url = models.FileField(upload_to=generate_unique_filename,blank=True, null=True) 
+    transcript_url = models.FileField(upload_to=generate_unique_filename,blank=True, null=True)
+    duration_ms = models.IntegerField( null=True, blank=True)
     season = models.IntegerField(null=True, blank=True)
     episode_number = models.IntegerField(null=True, blank=True)
     explicit = models.BooleanField(default=False)
     
-    cover_art_image_url = models.ImageField(upload_to=generate_unique_filename, blank=True)
+    cover_art_image_url = models.ImageField(upload_to=generate_unique_filename, blank=True, null=True)
     is_featured = models.BooleanField(default=False)
     type = models.CharField(max_length=50, choices=TYPE_CHOICES, default='full')
     chapters = models.JSONField(default=dict, blank=True)
@@ -88,6 +74,8 @@ class PodcastEpisode(BaseModel):
     publish_date = models.DateTimeField(null=True, blank=True)
     scheduled_date = models.DateTimeField(null=True, blank=True)
     
+    comments = models.JSONField(default=dict, blank=True, null=True)
+    
     class Meta:
         ordering = ['season', 'episode_number']
         
@@ -95,13 +83,29 @@ class PodcastEpisode(BaseModel):
         return f"{self.podcast} - S{self.season}E{self.episode_number}: {self.title}"
 
 
-class PodcastEpisodeComment(BaseModel):
-    """Model for comments on podcast episodes"""
-    episode = models.ForeignKey(PodcastEpisode, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='podcast_comments')
-    content = models.TextField()
-    is_public = models.BooleanField(default=True)
-    response_from_creator = models.TextField(blank=True)
+
+class Category(BaseModel):
+    """Model for categories"""
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
     
+    class Meta:
+        verbose_name_plural = 'Categories'
+        
     def __str__(self):
-        return f"Comment on {self.episode} by {self.user}"
+        return self.name
+
+
+class PodcastCategory(BaseModel):
+    """Model for podcast categories"""
+    podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE, related_name='categories')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='podcasts')
+    is_primary = models.BooleanField(default=False)
+    
+    class Meta:
+        unique_together = ('podcast', 'category')
+        verbose_name_plural = 'Podcast categories'
+        
+    def __str__(self):
+        return f"{self.podcast} - {self.category}"
