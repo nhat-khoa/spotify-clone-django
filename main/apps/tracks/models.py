@@ -17,7 +17,8 @@ class Track(BaseModel):
     release_date = models.DateField(null=True, blank=True)
     
     plain_lyrics = models.TextField(blank=True)
-    synced_lyrics = models.FileField(upload_to=generate_unique_filename,blank=True)
+    synced_lyrics = models.TextField(blank=True, null=True)  # chứa nội dung .lrc
+
     record_label = models.CharField(max_length=255, blank=True)
     is_instrumental = models.BooleanField(default=False)
     
