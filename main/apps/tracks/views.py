@@ -16,6 +16,9 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from apps.albums.models import Album
+from apps.albums.serializers import AlbumSerializer
+from apps.artists.serializers import ArtistSerializer
+from collections import defaultdict
 
 
 
@@ -101,18 +104,6 @@ class TrackViewSet(GenericViewSet):
         instance = self.get_object()
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-    @action(detail=True, methods=['get'])
-    def get_track_artists(self, request, pk=None):
-        insance = Track.objects.get(id=pk)
-        if not insance:
-            return Response({'error': 'Track not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = self.get_serializer(insance)
-        track_artists = insance.credited_artists.all()
-        return Response({
-            'track': serializer.data,
-            'track_artists': TrackArtistSerializer(track_artists, many=True).data
-        })
         
     @action(detail=False, methods=['post'])
     def upload(self, request):
@@ -183,7 +174,53 @@ class TrackViewSet(GenericViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
+    
+    @action(detail=True, methods=['get'])
+    def get_track_artists(self, request, pk=None):
+        """Get all artists of a track including primary artist and credited artists"""
+        try:
+            instance = self.get_object()
+            
+            # Get primary artist from Track model
+            primary_artist = {
+                'artist': ArtistSerializer(instance.artist).data,
+                'role': 'primary'
+            }
+            
+            # Get all credited artists with their roles
+            credited_artists = instance.credited_artists.all()
+            credited_artists_data = TrackArtistSerializer(credited_artists, many=True,
+                                                          context = {'request':request}).data
+            
+            track_artists = [primary_artist] + credited_artists_data
+            print(track_artists)
+            result = {}
+            for artist_entry in track_artists:
+                role = artist_entry["role"]
+                artist = artist_entry["artist"]
+                
+                if role not in result:
+                    result[role] = []
+                    
+                result[role].append(artist)
+                
+            
+            
+            return Response( result , status=status.HTTP_200_OK)
+            
+        except Track.DoesNotExist:
+            return Response(
+                {'error': 'Track not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST 
+            )
         
+
+    
     @action(detail=True, methods=['delete'])
     def delete_track_artist(self, request, pk=None):
         artist_id = request.data.get('artist_id')

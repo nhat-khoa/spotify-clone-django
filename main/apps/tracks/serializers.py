@@ -49,8 +49,8 @@ class TrackSerializer(serializers.ModelSerializer):
 
 class TrackArtistSerializer(serializers.ModelSerializer):
     # artist = serializers.StringRelatedField()  # or use a nested serializer if needed
-    artist = ArtistSerializer()
+    artist = ArtistSerializer(read_only=True)  # Assuming you want to show artist details
     
     class Meta:
         model = TrackArtist
-        fields = '__all__'
+        fields = ('artist', 'role')
