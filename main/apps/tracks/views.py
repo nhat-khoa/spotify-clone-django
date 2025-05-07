@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from apps.artists.models import Artist
 from .models import Track, TrackArtist
 from .serializers import TrackSerializer, TrackArtistSerializer
-from .permissions import IsArtistUser, IsTrackOwner
+from apps.core.permissions import IsArtistUser, IsTrackOwner
 from rest_framework.decorators import action, permission_classes as pc
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -19,6 +19,7 @@ from apps.albums.models import Album
 from apps.albums.serializers import AlbumSerializer
 from apps.artists.serializers import ArtistSerializer
 from collections import defaultdict
+from mutagen.mp3 import MP3
 
 
 
@@ -88,11 +89,32 @@ class TrackViewSet(GenericViewSet):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        album_id = request.data.get('album_id')
+        album_image = request.FILES.get('album_image')
+        album = None
+        if album_id and album_id != '' and album_id != 'null':
+           album = get_object_or_404(Album, id=album_id)   
+        if album_image and album:
+            album.avatar_url = album_image
+            album.save()
+            
+        # get duration of audio file in milliseconds
+        audio_file = request.FILES.get('audio_file_path')   
+        if audio_file:
+            audio = MP3(audio_file)
+            duration_seconds = audio.info.length
+            duration_milliseconds = int(duration_seconds * 1000)
+            request.data['duration_ms'] = duration_milliseconds
+         
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        
+        if album:
+            serializer.save(album=album)
+        else:
+            serializer.save()
 
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     # Patch api/tracks/{id}/
     def partial_update(self, request, *args, **kwargs):
@@ -109,29 +131,41 @@ class TrackViewSet(GenericViewSet):
     def upload(self, request):
         """Upload track with audio file"""
         try:
-            audio_file = request.FILES.get('audio_file')
+            audio_file = request.FILES.get('audio_file_path')    
             if not audio_file:
                 return Response(
                     {'error': 'No audio file provided'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
+            # get duration of audio file in milliseconds
+            audio = MP3(audio_file)
+            duration_seconds = audio.info.length
+            duration_milliseconds = int(duration_seconds * 1000)
+             
+            album_id = request.data.get('album_id')    
+            if not album_id or album_id == '' or album_id == 'null':
+                album_image = request.FILES.get('album_image')
                 
-            if not request.data.get('album_id'):
                 album = Album.objects.create(
                     title=request.data.get('album_title',request.data.get('title')),
                     artist=request.user.artist_profile, 
+                    **({'avatar_url': album_image} if album_image else {})
                 )
+                
+                
             else:
-                album = get_object_or_404(Album, id=request.data.get('album_id'))
+                album = get_object_or_404(Album, id=album_id)
             
             # Get track data from request
             track_data = {
                 'title': request.data.get('title'),
-                'duration_ms': request.data.get('duration_ms', 0),
+                'duration_ms': duration_milliseconds,
                 'language': request.data.get('language', ''),
                 'plain_lyrics': request.data.get('lyrics', ''),
                 'is_instrumental': request.data.get('is_instrumental', False),
-                'audio_file_path': audio_file
+                'audio_file_path': audio_file,
+                'release_date': request.data.get('release_date', None),
             }
 
             # Create track using serializer
@@ -203,9 +237,6 @@ class TrackViewSet(GenericViewSet):
                     result[role] = []
                     
                 result[role].append(artist)
-                
-            
-            
             return Response( result , status=status.HTTP_200_OK)
             
         except Track.DoesNotExist:
