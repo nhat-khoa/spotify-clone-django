@@ -103,8 +103,7 @@ def chat_with_data(request):
 
     # Hỏi LLM xem câu hỏi có cần query DB không
     check_prompt = f"""
-        Dưới đây là metadata của database:\n{metadata}\n
-        Dựa vào metadata của database, câu hỏi sau đây có cần truy vấn dữ liệu từ cơ sở dữ liệu không?
+        Câu hỏi sau đây có cần truy vấn dữ liệu từ cơ sở dữ liệu không?
         Câu hỏi: "{user_prompt}"
         Trả lời ngắn gọn: "yes" hoặc "no".
         Không giải thich thêm gì cả.
