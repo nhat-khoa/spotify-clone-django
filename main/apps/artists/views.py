@@ -13,7 +13,7 @@ class ArtistViewSet(GenericViewSet):
     
     def get_permissions(self):
         match self.action:
-            case 'create' | 'upload' | 'retrieve' | 'get_tracks' | 'get_albums' | 'upload_gallery'| 'get_gallery':
+            case 'create' | 'upload' | 'retrieve' | 'get_tracks' | 'get_albums' | 'upload_gallery'| 'get_gallery'|'get_artist':
                 permission_classes = [IsAuthenticated, IsArtistUser]
             case 'update' | 'partial_update' | 'destroy' :
                 permission_classes = [IsAuthenticated, IsArtistUser, IsTrackOwner]
@@ -21,12 +21,21 @@ class ArtistViewSet(GenericViewSet):
                 permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
     
+    
+    @action(detail=False, methods=['get'])
+    def get_artist(self, request, *args, **kwargs):
+        artist = request.user.artist_profile
+        serializer = self.get_serializer(artist)
+        
+        return Response({"message": "Get artist successfully", "result": serializer.data,
+                         "status":"success"}, status=200)
+    
     @action(detail=False, methods=['get'])
     def get_tracks(self, request, *args, **kwargs):
         artist = request.user.artist_profile
         serializer = self.get_serializer(artist)
         
-        return Response({"message": "Get tracks successfully", "result": serializer.data,
+        return Response({"message": "Get tracks successfully", "result": serializer.data.get('tracks', []),
                          "status":"success"}, status=200)
         
     @action(detail=False, methods=['get'])

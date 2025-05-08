@@ -93,4 +93,16 @@ class PodcastViewSet(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMi
 
 
 
+class PodcasterViewSet(GenericViewSet):
+    queryset = Podcaster.objects.all()
+    serializer_class = PodcasterSerializer
+    
+    def get_permissions(self):
+        match self.action:
+            case 'create' | 'update' | 'partial_update' | 'destroy':
+                permission_classes = [IsAuthenticated, IsPodcasterUser]
+            case _:  # Mặc định (list, retrieve, get_track_artists, ...)
+                permission_classes = [AllowAny]
+        return [permission() for permission in permission_classes]
+
 

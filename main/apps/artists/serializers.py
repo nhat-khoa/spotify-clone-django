@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Artist, ArtistImageGallery, ArtistPick
 from apps.tracks.models import Track, TrackArtist
-from apps.interactions.models import UserSavedTrack
+from apps.interactions.models import UserSavedTrack,UserFollowedArtist
 from apps.albums.models import Album
 
 
@@ -32,8 +32,17 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
         return False
     
     
+class ArtistImageGallerySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArtistImageGallery
+        fields = '__all__'    
+    
+
 class ArtistSerializer(serializers.ModelSerializer):
     tracks = serializers.SerializerMethodField()  # Assuming you want to show artist's tracks
+    albums = SimpleAlbumSerializer(many=True, read_only=True)  # Assuming you want to show artist's albums
+    gallery_images = ArtistImageGallerySerializer(many=True, read_only=True)
+    is_favorite = serializers.SerializerMethodField()
     class Meta:
         model = Artist
         fields = '__all__'  # Hoặc có thể chọn các trường cụ thể
@@ -44,11 +53,14 @@ class ArtistSerializer(serializers.ModelSerializer):
         # Sử dụng serializer để chuyển đổi thành định dạng JSON
         serializer = SimpleTrackSerializer(tracks, many=True, context=self.context)
         return serializer.data
+    
+    def get_is_favorite(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            return UserFollowedArtist.objects.filter(user=user, artist=obj).exists()
+        return False
 
-class ArtistImageGallerySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ArtistImageGallery
-        fields = '__all__'
+
 
 class ArtistPickSerializer(serializers.ModelSerializer):
     class Meta:

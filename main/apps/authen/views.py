@@ -69,7 +69,9 @@ def google_login(request):
                 "subscription_type": user.subscription_type,
                 "avatar_url": request.build_absolute_uri(user.avatar_url.url)  if user.avatar_url else None,
                 "thumbnail_url": request.build_absolute_uri(user.thumbnail_url.url) if user.thumbnail_url else None,
-                "premium_expired": user.premium_expired
+                "premium_expired": user.premium_expired,
+                "is_artist": hasattr(user, 'artist_profile'),
+                "is_podcaster": hasattr(user, 'podcaster_profile'),
             }
         }, status=status.HTTP_200_OK)
 
@@ -153,7 +155,9 @@ def login(request):
                 "avatar_url": request.build_absolute_uri(user.avatar_url.url)  if user.avatar_url else None,
                 "thumbnail_url": request.build_absolute_uri(user.thumbnail_url.url) if user.thumbnail_url else None,
                 "premium_expired": user.premium_expired,
-               
+                "is_artist": hasattr(user, 'artist_profile'),
+                "is_podcaster": hasattr(user, 'podcaster_profile'),
+
             }
         }, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)

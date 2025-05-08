@@ -223,7 +223,7 @@ class TrackViewSet(GenericViewSet):
             
             # Get primary artist from Track model
             primary_artist = {
-                'artist': ArtistSerializer(instance.artist).data,
+                'artist': ArtistSerializer(instance.artist,context = {'request':request}).data,
                 'role': 'primary'
             }
             
@@ -236,8 +236,8 @@ class TrackViewSet(GenericViewSet):
             print(track_artists)
             result = {}
             for artist_entry in track_artists:
-                role = artist_entry["role"]
-                artist = artist_entry["artist"]
+                role = artist_entry.get("role")
+                artist = artist_entry.get("artist")
                 
                 if role not in result:
                     result[role] = []
@@ -252,8 +252,8 @@ class TrackViewSet(GenericViewSet):
             )
         except Exception as e:
             return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST 
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
         
 

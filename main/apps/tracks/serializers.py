@@ -4,6 +4,7 @@ from .models import Track, TrackArtist
 from apps.artists.serializers import ArtistSerializer
 from apps.albums.serializers import AlbumSerializer
 from apps.interactions.models import UserSavedTrack
+from apps.artists.models import Artist
 
 class TrackSerializer(serializers.ModelSerializer):
     artist = ArtistSerializer(read_only=True)  # Assuming you want to show artist details
@@ -47,9 +48,14 @@ class TrackSerializer(serializers.ModelSerializer):
         return False
     
 
+
+#  track serializer for list view
+
+    
+
 class TrackArtistSerializer(serializers.ModelSerializer):
     # artist = serializers.StringRelatedField()  # or use a nested serializer if needed
-    artist = ArtistSerializer(read_only=True)  # Assuming you want to show artist details
+    artist = ArtistSerializer(read_only=True )  # Assuming you want to show artist details
     
     class Meta:
         model = TrackArtist
