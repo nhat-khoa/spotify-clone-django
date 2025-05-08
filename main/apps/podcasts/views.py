@@ -12,19 +12,31 @@ from rest_framework import status
 from rest_framework.decorators import action
 
 
-class PodcastViewSet(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+class PodcastViewSet(GenericViewSet,
+                     mixins.ListModelMixin,mixins.RetrieveModelMixin,
+                     mixins.UpdateModelMixin,mixins.DestroyModelMixin,
+                     ):
     queryset = Podcast.objects.all()
     serializer_class = PodcastSerializer
     
     def get_permissions(self):
         match self.action:
-            case 'create' | 'upload':
+            case 'create' | 'upload' | 'get_podcasts':
                 permission_classes = [IsAuthenticated, IsPodcasterUser]
             case 'update' | 'partial_update' | 'destroy':
                 permission_classes = [IsAuthenticated, IsPodcasterUser, IsPodcastOwner]
             case _:  # Mặc định (list, retrieve, get_track_artists, ...)
                 permission_classes = [AllowAny]
         return [permission() for permission in permission_classes]
+    
+    @action(detail=False, methods=['get'])
+    def get_podcasts(self, request):
+        """Lấy danh sách podcast"""
+        podcasts = Podcast.objects.all().filter(podcaster=request.user.podcaster_profile)
+        serializer = self.get_serializer(podcasts, many=True)
+        return Response({"message": "Get podcasts successfully", "result": serializer.data,
+                         "status":"success"}, status=200)
+    
     
     def get_success_headers(self, data):
         try:
