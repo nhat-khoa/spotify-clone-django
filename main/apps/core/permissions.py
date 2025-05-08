@@ -23,3 +23,16 @@ class IsTrackOwner(permissions.BasePermission):
     def has_permission(self, request, view, *args, **kwargs):     
         # For object-specific actions, let has_object_permission handle it
         return True
+    
+class IsAlbumOwner(permissions.BasePermission):
+    """
+    Custom permission để kiểm tra user có phải là chủ sở hữu của album không
+    """
+    message = "You are not the owner of this album."
+    
+    def has_object_permission(self, request, view, obj):
+        return obj.artist == request.user.artist_profile
+    
+    def has_permission(self, request, view, *args, **kwargs):     
+        # For object-specific actions, let has_object_permission handle it
+        return True

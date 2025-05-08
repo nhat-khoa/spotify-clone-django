@@ -22,8 +22,8 @@ class ArtistImageGallery(BaseModel):
     """Model for artist image gallery"""
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='gallery_images')
     image_url = models.ImageField(upload_to=generate_unique_filename)
-    title = models.CharField(max_length=255, blank=True)
-    description = models.TextField(blank=True)
+    title = models.CharField(max_length=255, blank=True,null=True)
+    description = models.TextField(blank=True, null=True)
     file_size = models.IntegerField(null=True, blank=True)
     display_order = models.IntegerField(default=0)
     

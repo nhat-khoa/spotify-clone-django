@@ -13,7 +13,7 @@ class ArtistViewSet(GenericViewSet):
     
     def get_permissions(self):
         match self.action:
-            case 'create' | 'upload' | 'retrieve' | 'get_tracks':
+            case 'create' | 'upload' | 'retrieve' | 'get_tracks' | 'get_albums' | 'upload_gallery'| 'get_gallery':
                 permission_classes = [IsAuthenticated, IsArtistUser]
             case 'update' | 'partial_update' | 'destroy' :
                 permission_classes = [IsAuthenticated, IsArtistUser, IsTrackOwner]
@@ -33,9 +33,41 @@ class ArtistViewSet(GenericViewSet):
     def get_albums(self, request, *args, **kwargs):
         artist = request.user.artist_profile
         albums = artist.albums.all()
-        serializer = SimpleAlbumSerializer(albums, many=True)
+        serializer = SimpleAlbumSerializer(albums, many=True, context={'request': request})
         
         return Response({"message": "Get albums successfully", "result": serializer.data,
                          "status":"success"}, status=200)
     
+    @action(detail=False, methods=['post'])
+    def upload_gallery(self, request, *args, **kwargs):
+        artist = request.user.artist_profile
+        images = request.FILES.getlist('images[]')
+        
+        for image in images:
+            ser = ArtistImageGallerySerializer(data={'artist': artist.id, 'image_url': image})
+            ser.is_valid(raise_exception=True)
+            ser.save()
+        
+        return Response({"message": "Upload gallery successfully", "status":"success"}, status=200)
+    
+    @action(detail=False, methods=['get'])
+    def get_gallery(self, request, *args, **kwargs):
+        artist = request.user.artist_profile
+        images = artist.gallery_images.all()
+        serializer = ArtistImageGallerySerializer(images, many=True, context={'request': request})
+        
+        return Response({"message": "Get gallery successfully", "result": serializer.data,
+                         "status":"success"}, status=200)
 
+
+    @action(detail=False, methods=['post'])
+    def delete_gallery(self, request, *args, **kwargs):
+        artist = request.user.artist_profile
+        image_id = request.data.get('image_id')
+        
+        try:
+            image = artist.gallery_images.get(id=image_id)
+            image.delete()
+            return Response({"message": "Delete gallery successfully", "status":"success"}, status=200)
+        except ArtistImageGallery.DoesNotExist:
+            return Response({"message": "Image not found", "status":"error"}, status=404)

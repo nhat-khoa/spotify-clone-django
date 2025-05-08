@@ -9,6 +9,7 @@ class AlbumSerializer(serializers.ModelSerializer):
     artist = ArtistSerializer(read_only=True)
     tracks = serializers.SerializerMethodField(read_only=True)
     is_favorite = serializers.SerializerMethodField()
+    tracks_count = serializers.IntegerField(source='tracks.count', read_only=True)
 
     class Meta:
         model = Album

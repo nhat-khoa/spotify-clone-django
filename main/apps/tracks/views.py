@@ -166,6 +166,12 @@ class TrackViewSet(GenericViewSet):
                 'is_instrumental': request.data.get('is_instrumental', False),
                 'audio_file_path': audio_file,
                 'release_date': request.data.get('release_date', None),
+                'isrc_code': request.data.get('isrc_code', ''),
+                'explicit': request.data.get('explicit', False),
+                'record_label': request.data.get('record_label', ''),
+                'source': request.data.get('source', ''),
+                'is_premium': request.data.get('is_premium', False),
+                'is_instrumental': request.data.get('is_instrumental', False),
             }
 
             # Create track using serializer

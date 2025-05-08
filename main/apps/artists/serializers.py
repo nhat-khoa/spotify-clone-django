@@ -6,6 +6,7 @@ from apps.albums.models import Album
 
 
 class SimpleAlbumSerializer(serializers.ModelSerializer):
+    tracks_count = serializers.IntegerField(source='tracks.count', read_only=True)
     class Meta:
         model = Album
         fields = '__all__'  # Hoặc có thể liệt kê các trường cụ thể
