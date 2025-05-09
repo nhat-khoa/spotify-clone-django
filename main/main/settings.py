@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.podcasts',
     'apps.interactions',
     'apps.albums',
+    'apps.histories',
     # 'apps.group_sessions',
     # 'apps.analytics',
 
