@@ -6,6 +6,7 @@ from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateMode
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from apps.artists.models import Artist
+from apps.histories.models import History
 from .models import Track, TrackArtist
 from .serializers import TrackSerializer, TrackArtistSerializer
 from apps.core.permissions import IsArtistUser, IsTrackOwner
@@ -274,8 +275,19 @@ class TrackViewSet(GenericViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def get_tracks_from_history(self, request):
+        try:
+            histories = History.objects.filter(user=request.user).select_related("track").order_by('-listened_at')
+            tracks = [history.track for history in histories]
 
+            serializer = TrackSerializer(tracks, many=True, context={'request': request})
+            return Response(serializer.data)
+
+        except Exception as e:
+            import traceback
+            print("LỖI:", traceback.format_exc())  # In lỗi chi tiết ra terminal
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 class TrackArtistViewSet(ModelViewSet):
     queryset = TrackArtist.objects.all()
     serializer_class = TrackArtistSerializer

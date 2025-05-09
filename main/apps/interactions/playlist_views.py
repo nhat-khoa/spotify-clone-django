@@ -281,9 +281,25 @@ class PlaylistViewSet(ViewSet):
     @action(detail=False, methods=['get'], url_path='my-public-playlists')
     def my_public_playlists(self, request):
         """Lấy danh sách playlist công khai của chính mình"""
-        playlists = Playlist.objects.filter(user=request.user, is_public=True)
-        serializer = PlaylistSerializer(playlists, many=True, context={"request": request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # playlists = Playlist.objects.filter(user=request.user, is_public=True)
+        # serializer = PlaylistSerializer(playlists, many=True, context={"request": request})
+        # return Response(serializer.data, status=status.HTTP_200_OK)
+
+        try:
+        # Lấy danh sách UserFollowedPlaylist theo người dùng hiện tại
+            followed_playlists = UserFollowedPlaylist.objects.filter(user=request.user)
+
+            # Serialize các playlist đã theo dõi
+            playlists = [followed_playlist.playlist for followed_playlist in followed_playlists]
+
+            # Trả về danh sách playlist đã follow
+            return Response({
+                "message": "Followed playlists retrieved successfully",
+                "status": "success",
+                "result": PlaylistSerializer(playlists, many=True, context={"request": request}).data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     
     # ------------------------------ Collaborators ------------------------------
