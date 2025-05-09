@@ -174,6 +174,8 @@ class PlaylistViewSet(ViewSet):
         
         if not playlist.items:
             playlist.items = []
+        
+        
             
         playlist.items.append({
             "uid": secrets.token_hex(8),
@@ -184,7 +186,9 @@ class PlaylistViewSet(ViewSet):
             "owner_name": item.artist.name if item_type == 'track' else item.podcast.podcaster.name,
             "album_or_podcast": item.album.title if item_type == 'track' else item.podcast.title,
             "album_or_podcast_id": str(item.album.id) if item_type == 'track' else str(item.podcast.id),
-            "item_image":   request.build_absolute_uri(item.album.avatar_url.url)
+            "item_image":   request.build_absolute_uri(item.avatar_url.url)
+                            if item_type == 'track' and item.avatar_url  
+                            else request.build_absolute_uri(item.album.avatar_url.url)
                             if item_type == 'track' and item.album and item.album.avatar_url 
                             else request.build_absolute_uri(item.cover_art_image_url.url) 
                             if item_type == 'podcast_episode' and item.cover_art_image_url 
