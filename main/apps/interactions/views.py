@@ -119,4 +119,70 @@ class LibraryViewSet(ViewSet):
                 "error": str(e),
                 "status": "fail"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    
+    @action(detail=False, methods=['get']) 
+    def search(self, request):
+        """Tìm kiếm track, artist, album, podcast"""
+        try:
+            search_key = request.query_params.get('q', '').strip()
+            if not search_key:
+                return Response({
+                    "error": "Search key is required",
+                    "status": "fail"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Tìm tracks
+            tracks = Track.objects.filter(
+                Q(title__icontains=search_key) |
+                Q(artist__name__icontains=search_key) |
+                Q(album__title__icontains=search_key)
+            )[:10]
+
+            # Tìm artists 
+            artists = Artist.objects.filter(
+                Q(name__icontains=search_key) |
+                Q(bio__icontains=search_key)
+            )[:10]
+
+            # Tìm albums
+            albums = Album.objects.filter(
+                Q(title__icontains=search_key) |
+                Q(artist__name__icontains=search_key) |
+                Q(description__icontains=search_key)
+            )[:10]
+
+            # Tìm podcasts
+            podcasts = Podcast.objects.filter(
+                Q(title__icontains=search_key) |
+                Q(description__icontains=search_key) |
+                Q(podcaster__name__icontains=search_key)
+            )[:10]
+
+            response_data = {
+                "tracks": TrackInteractionSerializer(
+                    tracks, many=True, 
+                    context={'request': request}
+                ).data,
+                "artists": ArtistInteractionSerializer(
+                    artists, many=True,
+                    context={'request': request}
+                ).data,
+                "albums": AlbumInteractionSerializer(
+                    albums, many=True,
+                    context={'request': request}
+                ).data,
+                "podcasts": PodcastInteractionSerializer(
+                    podcasts, many=True,
+                    context={'request': request}
+                ).data,
+                "status": "success"
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "error": str(e), 
+                "status": "fail"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    

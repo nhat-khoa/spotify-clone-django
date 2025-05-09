@@ -20,7 +20,9 @@ from apps.albums.models import Album
 from apps.albums.serializers import AlbumSerializer
 from apps.artists.serializers import ArtistSerializer
 from collections import defaultdict
+from django.http import FileResponse
 from mutagen.mp3 import MP3
+import os
 
 
 
@@ -257,6 +259,21 @@ class TrackViewSet(GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+
+    @action(detail=True, methods=['get'])
+    def audio_stream(self, request, pk=None):
+        track = get_object_or_404(Track, id=pk)
+
+        if not track.audio_file_path:
+            return Response({'error': 'Audio file not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        file_path = track.audio_file_path.path  # full absolute path
+        if not os.path.exists(file_path):
+            return Response({'error': 'Audio file not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        response = FileResponse(open(file_path, 'rb'), content_type='audio/mpeg')
+        response['Accept-Ranges'] = 'bytes'
+        return response
 
     
     @action(detail=True, methods=['delete'])

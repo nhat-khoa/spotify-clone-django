@@ -15,6 +15,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     album_id = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(), required=False)
     is_favorite = serializers.SerializerMethodField()
     album = SimpleAlbumSerializer(read_only=True)  # Assuming you want to show album details
+    audio_stream_url = serializers.SerializerMethodField()
     class Meta:
         model = Track
         fields = '__all__'
@@ -30,6 +31,10 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
         if user.is_authenticated:
             return UserSavedTrack.objects.filter(user=user, track=obj).exists()
         return False
+   
+    def get_audio_stream_url(self, obj):
+        # Assuming you have a method to generate the audio stream URL
+        return f'http://127.0.0.1:8000/api/tracks/{obj.id}/audio_stream/'  
     
     
 class ArtistImageGallerySerializer(serializers.ModelSerializer):
