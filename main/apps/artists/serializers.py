@@ -43,6 +43,7 @@ class ArtistSerializer(serializers.ModelSerializer):
     albums = SimpleAlbumSerializer(many=True, read_only=True)  # Assuming you want to show artist's albums
     gallery_images = ArtistImageGallerySerializer(many=True, read_only=True)
     is_favorite = serializers.SerializerMethodField()
+    followers = serializers.IntegerField(source='followers.count', read_only=True)
     class Meta:
         model = Artist
         fields = '__all__'  # Hoặc có thể chọn các trường cụ thể

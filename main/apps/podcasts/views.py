@@ -10,6 +10,7 @@ from rest_framework.settings import api_settings
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
+from mutagen.mp3 import MP3
 
 
 class PodcastViewSet(GenericViewSet,
@@ -54,11 +55,38 @@ class PodcastViewSet(GenericViewSet,
     @action(detail=True, methods=['post'])
     def create_episode(self, request, pk=None):
         podcast = self.get_object()
+        
+        audio_file = request.FILES.get('audio_url')   
+        if audio_file:
+            audio = MP3(audio_file)
+            duration_seconds = audio.info.length
+            duration_milliseconds = int(duration_seconds * 1000)
+            request.data['duration_ms'] = duration_milliseconds
+        
         serializer = PodcastEpisodeSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save(podcast=podcast)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    # update episode
+    @action(detail=False, methods=['put'])
+    def update_episode(self, request):
+        """Cập nhật thông tin tập podcast"""
+                # get duration of audio file in milliseconds
+        audio_file = request.FILES.get('audio_file')   
+        if audio_file:
+            audio = MP3(audio_file)
+            duration_seconds = audio.info.length
+            duration_milliseconds = int(duration_seconds * 1000)
+            request.data['duration_ms'] = duration_milliseconds
+        
+        
+        episode = PodcastEpisode.objects.get(id=request.data['episode_id'])
+        serializer = PodcastEpisodeSerializer(episode, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def rate_podcast(self, request, pk=None):
@@ -102,6 +130,9 @@ class PodcastViewSet(GenericViewSet,
         serializer = PodcastEpisodeSerializer(episode, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+
+
+
 
 
 

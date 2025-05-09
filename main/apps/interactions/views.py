@@ -3,16 +3,25 @@ from .models import (
     UserFollowedArtist, UserFollowedPodcast, UserFollowedPlaylist,
     UserSavedTrack, UserSavedEpisode, Folder, Playlist, UserSavedAlbum
 )
+from apps.tracks.models import Track
 from .serializers import (
     FolderSerializer,
-    PlaylistSerializer
+    PlaylistSerializer,
+    AlbumInteractionSerializer,
+    ArtistInteractionSerializer,
+    TrackInteractionSerializer,
+    PodcastInteractionSerializer,
 )
 from apps.tracks.serializers import TrackSerializer
 from apps.albums.serializers import AlbumSerializer
+from apps.albums.models import Album
 from apps.artists.serializers import ArtistSerializer
+from apps.artists.models import Artist
 from apps.podcasts.serializers import PodcastSerializer, PodcastEpisodeSerializer
+from apps.podcasts.models import Podcast
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -72,23 +81,42 @@ class LibraryViewSet(ViewSet):
             "status": "success"
         }, status=status.HTTP_200_OK)
         
-    # ------------------------------ Folder ------------------------------
-    
 
-    # ------------------------------ Playlist ------------------------------
     
+    # get data for home page
+    @action(detail=False, methods=['get'])
+    def home(self, request):
+        """Lấy dữ liệu cho trang chủ"""
+        try:
+            # Lấy các track phổ biến và premium
+            tracks = Track.objects.filter(
+                Q(is_premium=False) 
+                # Q(is_premium=True, artist__user__premium_expired=True)
+            ).order_by('?')[:15]
+            
+            # Lấy các artist có nhiều track
+            artists = Artist.objects.all().order_by('?')[:15]
+            
+            # Lấy album mới nhất 
+            albums = Album.objects.all().order_by('?')[:15]
+            
+            # Lấy podcast được đánh giá cao
+            podcasts = Podcast.objects.all().order_by('?')[:15]
 
-    # ------------------------------ Track ------------------------------
-    
+            response_data = {
+                "tracks": TrackInteractionSerializer(tracks, many=True, context={'request': request}).data,
+                "artists": ArtistInteractionSerializer(artists, many=True, context={'request': request}).data,
+                "albums": AlbumInteractionSerializer(albums, 
+                                          many=True, context={'request': request}).data,
+                "podcasts": PodcastInteractionSerializer(podcasts, many=True, context={'request': request}).data,
+                "status": "success"
+            }
 
-    # ------------------------------ Artist ------------------------------
-    
+            return Response(response_data, status=status.HTTP_200_OK)
 
-    # ------------------------------ Playlist Follow ------------------------------
-    
-    # ------------------------------ Episode ------------------------------
-    
-
-    # ------------------------------ Podcast ------------------------------
-    
-    
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "status": "fail"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
