@@ -28,7 +28,7 @@ class Podcast(BaseModel):
     copyright_notice = models.CharField(max_length=255, blank=True,null=True)
     cover_art_image_url = models.ImageField(upload_to=generate_unique_filename, blank=True, null=True)
     thumbnail_url = models.ImageField(upload_to=generate_unique_filename, blank=True, null=True)
-    description = models.TextField( blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     rss_feed_url = models.URLField(blank=True,null=True)
     rss_feed_file = models.FileField(upload_to=generate_unique_filename, blank=True,null=True)
     licensor = models.CharField(max_length=255, blank=True)
