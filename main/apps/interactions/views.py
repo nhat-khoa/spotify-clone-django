@@ -90,7 +90,7 @@ class LibraryViewSet(ViewSet):
         try:
             # Lấy các track phổ biến và premium
             tracks = Track.objects.filter(
-                Q(is_premium=False) 
+  
                 # Q(is_premium=True, artist__user__premium_expired=True)
             ).order_by('?')[:15]
             
