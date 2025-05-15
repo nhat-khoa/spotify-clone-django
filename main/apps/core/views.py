@@ -9,6 +9,7 @@ import json
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
+@require_GET
 def db_metadata_view(request):
     metadata = []
 
@@ -122,8 +123,16 @@ def chat_with_data(request):
     # Nếu không cần query DB, chỉ cần trả lời thẳng
     if "no" in check_response:
         direct_answer_prompt = f"""
-            Trả lời câu hỏi sau bằng tiếng Việt ngắn gọn, thân thiện, dễ hiểu:
-            "{user_prompt}"
+            Câu hỏi: "{user_prompt}"
+            Hãy viết một câu trả lời ngắn gọn bằng tiếng Việt, **bắt buộc phải là tiếng việt**,
+            để trả lời cho câu hỏi trên, câu trả lời được trình bày dưới dạng HTML đẹp mắt với các yêu cầu sau:
+            - Sử dụng các thẻ HTML cơ bản như: <p>, <ul>, <li>, <strong>, <br>.
+            - Dùng <br> hoặc <ul>/<li> để xuống dòng hoặc hiển thị danh sách.
+            - Không viết thêm bất kỳ giải thích nào ngoài nội dung trả lời.
+            - Trả về duy nhất đoạn HTML (không markdown, không chú thích).
+            - Bắt buộc thêm các icon emoji vào câu trả lời để tăng tính thân thiện.
+            - Một số icon có thể sử dụng: 👋 🤔 😊 😅 🙏 🤖 🧑‍💻 🎯 🎉 🔄 📦 📌 ✅ ❌ ⚠️ 💡 📝 🔧 🔒 📂 🧠 🧪 📊 🔍 🔁 📥 📤 🚀 ⏳
+            - Bắt buộc phải luôn luôn có emojis 😊 trong câu trả lời, tùy ngữ cảnh có thể thay đổi thành emojis khác
         """
         answer_res = requests.post(OLLAMA_URL, json={
             "model": "llama3:8b",
@@ -141,8 +150,6 @@ def chat_with_data(request):
         Dưới đây là metadata của database:\n{metadata}\n
         Hãy viết một câu SQL (PostgreSQL) để trả lời câu hỏi sau:\n"{user_prompt}"
         Hãy trả về **chỉ duy nhất một câu SQL** để trả lời câu hỏi trên.
-        **Nếu trong bảng cần select có cột chứa giá trị là uuid của bảng khác thì hãy join các bảng lại với nhau để lấy dữ liệu.**
-        **Bắt buộc phải luôn luôn select * để lấy tất cả các cột trong bảng.**
         **Không được viết thêm bất kỳ giải thích hoặc chú thích nào.**
         Không được sử dụng markdown, không được bao quanh bởi ```sql.
     """
@@ -170,7 +177,7 @@ def chat_with_data(request):
         Dữ liệu: {data_preview}
 
         Hãy viết một câu trả lời ngắn gọn bằng tiếng Việt, **bắt buộc phải là tiếng việt**,
-        dễ hiểu cho người dùng, được trình bày dưới dạng HTML đẹp mắt với các yêu cầu sau:
+        được trình bày dưới dạng HTML đẹp mắt với các yêu cầu sau:
 
         - Sử dụng các thẻ HTML cơ bản như: <p>, <ul>, <li>, <strong>, <br>.
         - Dùng <strong> để in đậm các thông tin quan trọng như tên bài hát, nghệ sĩ, ngày phát hành...
@@ -180,8 +187,6 @@ def chat_with_data(request):
         - Bắt buộc thêm các icon emoji vào câu trả lời để tăng tính thân thiện.
         - Một số icon có thể sử dụng: 👋 🤔 😊 😅 🙏 🤖 🧑‍💻 🎯 🎉 🔄 📦 📌 ✅ ❌ ⚠️ 💡 📝 🔧 🔒 📂 🧠 🧪 📊 🔍 🔁 📥 📤 🚀 ⏳
         - Bắt buộc phải luôn luôn có emojis 😊 trong câu trả lời, tùy ngữ cảnh có thể thay đổi thành emojis khác
-
-        Bắt đầu viết từ phần trả lời HTML ngay sau đây:
     """
 
     res2 = requests.post(OLLAMA_URL, json={
