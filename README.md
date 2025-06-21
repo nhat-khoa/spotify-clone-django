@@ -4,6 +4,12 @@ This is the **backend** for a full-stack music streaming platform built with **D
 
 > 🔗 Frontend Repo: [Nuxt 3 – Music Streaming App](https://github.com/nhat-khoa/spotify-clone-nuxtjs)
 
+
+---
+## 📽️ Video Demo
+
+👉 Watch At: [YouTube Video Demo](https://www.youtube.com/watch?v=3gcv87uj8qc)
+
 ---
 
 ## 🚀 Key Features
@@ -24,11 +30,7 @@ This is the **backend** for a full-stack music streaming platform built with **D
   Swagger UI powered by `drf-yasg`.
 
 ---
-## 📽️ Video Demo
 
-👉 Watch At: [YouTube Video Demo](https://www.youtube.com/watch?v=3gcv87uj8qc)
-
----
 ## 🧪 Technology Stack
 
 | Layer         | Tech Stack                                                                 |
