@@ -1,6 +1,6 @@
-# 🎵 Music Streaming Backend – Django + MongoDB + Chatbot (Ollama)
+# 🎵 Music Streaming Backend – Django + PostgreSQL + Chatbot (Ollama)
 
-This is the **backend** for a full-stack music streaming platform built with **Django REST Framework**, **MongoDB**, and integrated with a local **chatbot using Ollama** for personalized music recommendations and assistance.
+This is the **backend** for a full-stack music streaming platform built with **Django REST Framework**, **PostgreSQL**, and integrated with a local **chatbot using Ollama** for personalized music recommendations and assistance.
 
 > 🔗 Frontend Repo: [Nuxt 3 – Music Streaming App](https://github.com/nhat-khoa/spotify-clone-nuxtjs)
 
